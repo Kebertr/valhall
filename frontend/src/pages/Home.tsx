@@ -1,9 +1,11 @@
 import { useState } from "react";
-import valhallLogo from "./assets/valhall.jpg";
-import "./App.css";
+import valhallLogo from ".././assets/valhall.jpg";
+import ".././App.css";
+import { useNavigate } from "react-router-dom";
 
-function App() {
+function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const navigate = useNavigate();
 
   const activities = [
     { icon: "⚔️", text: "Anton gave Joel 2 shots" },
@@ -68,7 +70,7 @@ function App() {
             Dashboard
           </button>
 
-          <button className="rounded-xl p-3 text-left hover:bg-slate-700">
+          <button onClick={() => navigate("/add")}className="rounded-xl p-3 text-left hover:bg-slate-700">
             Add Shot
           </button>
 
@@ -192,7 +194,7 @@ function App() {
         "
       >
         <div className="flex gap-3">
-          <button
+          <button onClick={() => navigate("/add")}
             className="
               flex-1
               rounded-2xl
@@ -229,4 +231,4 @@ function App() {
   );
 }
 
-export default App;
+export default Home;
