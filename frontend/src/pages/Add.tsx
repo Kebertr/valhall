@@ -7,6 +7,29 @@ function AddShot() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [amount, setAmount] = useState(1);
 
+  async function handleAddShot() {
+    try {
+        const response = await fetch("api/add", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+            member: selectedMember,
+            amount,
+        }),
+        });
+
+        if (!response.ok) {
+        throw new Error("Failed to add shot");
+        }
+
+        const data = await response.json();
+        console.log("Shot added:", data);
+    } catch (error) {
+        console.error("Could not add shot:", error);
+    }
+    }
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white pb-24">
       {/* Overlay */}
@@ -160,7 +183,7 @@ function AddShot() {
             />
           </div>
 
-          <button
+          <button onClick={handleAddShot}
             className="
               w-full
               rounded-2xl
