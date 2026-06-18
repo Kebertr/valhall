@@ -11,7 +11,7 @@ export class BongController {
   }
 
   @Post('add')
-  addShot(@Body() body: { name: string }) {
+  addShot(@Body() body: { name: string, amount: number, reason: string }) {
     return this.bongService.addShot(body);
   }
 }

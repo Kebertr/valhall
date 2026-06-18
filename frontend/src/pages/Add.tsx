@@ -3,9 +3,10 @@ import valhallLogo from "../assets/valhall.jpg";
 import "../App.css";
 
 function AddShot() {
-  const members = [ "Anton", "Anna", "Antonia", "Andreas", "Joel", "Filip", "Rasmus", ]; const [search, setSearch] = useState(""); const [selectedMember, setSelectedMember] = useState(""); const filteredMembers = members.filter(member => member.toLowerCase().includes(search.toLowerCase()) );
   const [menuOpen, setMenuOpen] = useState(false);
   const [amount, setAmount] = useState(1);
+  const [reason, setReason] = useState("");
+  const [selectedMember, setSelectedMember] = useState("");
 
   async function handleAddShot() {
     try {
@@ -15,8 +16,9 @@ function AddShot() {
             "Content-Type": "application/json",
         },
         body: JSON.stringify({
-            member: selectedMember,
-            amount,
+            name: selectedMember,
+            amount: amount,
+            reason: reason,
         }),
         });
 
@@ -128,37 +130,12 @@ function AddShot() {
 
         <input
             type="text"
-            placeholder="Search member..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Write member name..."
+            onChange={(e) => {
+              setSelectedMember(e.target.value);
+            }}
             className="mb-3 w-full rounded-xl bg-slate-700 p-4 text-white"
-        />
-
-        {selectedMember && (
-            <div className="mb-3 rounded-xl border border-green-500 bg-green-900/20 p-3">
-            Selected: {selectedMember}
-            </div>
-        )}
-
-        <div className="max-h-48 overflow-y-auto space-y-2">
-            {filteredMembers.map((member) => (
-            <button
-                key={member}
-                onClick={() => setSelectedMember(member)}
-                className="
-                w-full
-                rounded-xl
-                bg-slate-700
-                p-3
-                text-left
-                transition
-                hover:bg-slate-600
-                "
-            >
-                {member}
-            </button>
-            ))}
-        </div>
+          />
         </div>
 
         
@@ -179,6 +156,7 @@ function AddShot() {
 
             <textarea
               placeholder="Reason..."
+              onChange={(e) => setReason(e.target.value)}
               className="min-h-[120px] w-full rounded-xl bg-slate-700 p-4 text-white"
             />
           </div>
