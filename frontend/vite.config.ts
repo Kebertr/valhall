@@ -5,14 +5,14 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 const manifestIcons = [
   {
-    src: 'valhall.png',
+    src: 'valhall.jpg',
     sizes: '192x192',
-    type: 'image/png',
+    type: 'image/jpg',
   },
   {
-    src: 'valhall.png',
+    src: 'valhall.jpg',
     sizes: '512x512',
-    type: 'image/png',
+    type: 'image/jpg',
   }
 ]
 // https://vite.dev/config/
