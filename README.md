@@ -40,3 +40,6 @@ Prisma:
 
 Migrate the database:
 ```npx prisma migrate dev --name [name]```
+
+pwa:
+```npm install -D vite-plugin-pwa```
