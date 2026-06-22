@@ -8,14 +8,14 @@ export class BongService {
     return 'Hello World!';
   }
 
-  async addShot(body: { name: string, amount: number, reason: string }) {
+  async addShot(body: { name: string; amount: number; reason: string }) {
     await this.prisma.shot.create({
       data: {
         toName: body.name,
         amount: body.amount,
         reason: body.reason,
         fromName: 'Rasmus',
-      }
+      },
     });
     return {
       ok: true,
@@ -25,9 +25,9 @@ export class BongService {
         name: body.name,
         amount: body.amount,
         reason: body.reason,
-        status: "pending",
-        createdAt: new Date().toISOString()
-      }
+        status: 'pending',
+        createdAt: new Date().toISOString(),
+      },
     };
   }
 }

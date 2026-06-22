@@ -70,7 +70,7 @@ function Home() {
             Dashboard
           </button>
 
-          <button onClick={() => navigate("/add")}className="rounded-xl p-3 text-left hover:bg-slate-700">
+          <button aria-label="Add shot from menu" onClick={() => navigate("/add")}className="rounded-xl p-3 text-left hover:bg-slate-700">
             Add Shot
           </button>
 
@@ -194,7 +194,7 @@ function Home() {
         "
       >
         <div className="flex gap-3">
-          <button onClick={() => navigate("/add")}
+          <button aria-label="Add shot from footer" onClick={() => navigate("/add")}
             className="
               flex-1
               rounded-2xl
