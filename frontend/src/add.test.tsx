@@ -23,7 +23,7 @@ describe('AddShot', () => {
 
     await user.click(screen.getByRole('button', { name: /add shot/i }))
 
-    expect(fetchMock).toHaveBeenCalledWith('api/add', {
+    expect(fetchMock).toHaveBeenCalledWith('http://localhost:3000/api/add', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

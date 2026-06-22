@@ -2,6 +2,8 @@ import { useState } from "react";
 import valhallLogo from "../assets/valhall.jpg";
 import "../App.css";
 
+const apiUrl = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
+
 function AddShot() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [amount, setAmount] = useState(1);
@@ -10,7 +12,7 @@ function AddShot() {
 
   async function handleAddShot() {
     try {
-        const response = await fetch("api/add", {
+        const response = await fetch(`${apiUrl}/api/add`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
