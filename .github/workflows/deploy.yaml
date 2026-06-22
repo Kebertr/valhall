@@ -79,7 +79,7 @@ jobs:
 
   docker-images:
     name: Build and push Docker images
-    runs-on: [self-hosted, valhall]
+    runs-on: valhall
     needs: [frontend, backend]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
