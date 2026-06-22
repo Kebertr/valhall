@@ -8,7 +8,7 @@ const bongServiceMock = {
 
 describe('BongController', () => {
   let bongController: BongController;
-  let bongService: Jest.Mocked<BongService>;
+  let bongService: jest.Mocked<BongService>;
 
   beforeEach(async () => {
     const app: TestingModule = await Test.createTestingModule({
@@ -17,7 +17,7 @@ describe('BongController', () => {
     }).compile();
 
     bongController = app.get<BongController>(BongController);
-    bongService = app.get(BongService);
+    bongService = app.get<jest.Mocked<BongService>>(BongService);
   });
 
   describe('addShot', () => {
@@ -31,6 +31,7 @@ describe('BongController', () => {
 
       const result = await bongController.addShot({ name: 'Rasmus', amount: 5, reason: 'Cool' });
 
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(bongService.addShot).toHaveBeenCalledWith({ name: 'Rasmus', amount: 5, reason: 'Cool' });
 
       expect(result.ok).toBe(true);

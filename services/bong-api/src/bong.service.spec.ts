@@ -48,6 +48,7 @@ describe('BongService', () => {
     const result = await service.addShot(body);
 
     //Cehck so it is right
+    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(prisma.shot.create).toHaveBeenCalledWith({
         data: {
         toName: body.name,
