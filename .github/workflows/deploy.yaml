@@ -13,7 +13,7 @@ permissions:
 jobs:
   frontend:
     name: Frontend checks
-    runs-on: [self-hosted, valhall]
+    runs-on: valhall
 
     steps:
       - name: Checkout code
@@ -44,7 +44,7 @@ jobs:
 
   backend:
     name: Backend checks
-    runs-on: [self-hosted, valhall]
+    runs-on: valhall
 
     steps:
       - name: Checkout code
