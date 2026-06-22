@@ -61,6 +61,10 @@ jobs:
         working-directory: services/bong-api
         run: npm ci
 
+      - name: Generate Prisma client
+        working-directory: services/bong-api
+        run: npx prisma generate
+
       - name: Lint backend
         working-directory: services/bong-api
         run: npm run lint
