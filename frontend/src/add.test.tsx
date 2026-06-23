@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
+import { MemoryRouter } from 'react-router-dom'
 import AddShot from './pages/Add'
 
 describe('AddShot', () => {
@@ -14,7 +15,11 @@ describe('AddShot', () => {
 
     vi.stubGlobal('fetch', fetchMock)
 
-    render(<AddShot />)
+    render(
+      <MemoryRouter>
+        <AddShot />
+      </MemoryRouter>,
+    )
 
     await user.type(screen.getByPlaceholderText(/write member name/i), 'Rasmus')
     await user.clear(screen.getByRole('spinbutton'))
