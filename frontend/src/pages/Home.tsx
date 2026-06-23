@@ -108,7 +108,7 @@ function Home() {
             onClick={() => setMenuOpen(true)}
             className="z-10 rounded-lg p-2 text-2xl hover:bg-slate-800"
           >
-            Menu
+            ☰
           </button>
 
           {/* Centered Logo + Title */}

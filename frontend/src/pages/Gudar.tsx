@@ -63,7 +63,7 @@ function Gudar() {
 
       <header className="sticky top-0 z-30 border-b border-slate-800 bg-slate-950/90 backdrop-blur">
         <div className="relative flex min-h-[160px] items-start p-4">
-          <button onClick={() => setMenuOpen(true)} className="z-10 rounded-lg p-2 font-semibold hover:bg-slate-800" aria-label="Open menu">Menu</button>
+          <button onClick={() => setMenuOpen(true)} className="z-10 rounded-lg p-2 text-2xl hover:bg-slate-800" aria-label="Open menu">☰</button>
           <div className="absolute top-4 left-1/2 flex -translate-x-1/2 flex-col items-center">
             <img src={valhallLogo} alt="Valhall Logo" className="h-24 w-auto object-contain" />
             <h1 className="mt-2 text-3xl font-bold tracking-wider text-blue-500">Valhall</h1>

@@ -76,7 +76,7 @@ function Leaderboard() {
             className="z-10 rounded-lg p-2 text-2xl hover:bg-slate-800"
             aria-label="Open menu"
           >
-            Menu
+            ☰
           </button>
           <div className="absolute top-4 left-1/2 flex -translate-x-1/2 flex-col items-center">
             <img src={valhallLogo} alt="Valhall Logo" className="h-24 w-auto object-contain" />
