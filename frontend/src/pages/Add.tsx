@@ -105,7 +105,7 @@ function AddShot() {
             onClick={() => setMenuOpen(true)}
             className="z-10 rounded-lg p-2 text-2xl hover:bg-slate-800"
           >
-            Menu
+            ☰
           </button>
 
           <div className="absolute left-1/2 top-4 flex -translate-x-1/2 flex-col items-center">

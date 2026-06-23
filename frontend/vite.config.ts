@@ -21,6 +21,9 @@ export default defineConfig({
             tailwindcss(),
             VitePWA({
               registerType: 'autoUpdate',
+              workbox: {
+                navigateFallbackDenylist: [/^\/api\//],
+              },
               manifest: {
                 name: 'My Awesome App',
                 short_name: 'PWA App',
