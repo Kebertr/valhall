@@ -82,6 +82,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: [frontend, backend]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    env:
+      IMAGE_TAG: build-${{ github.run_number }}
 
     steps:
       - name: Checkout code
@@ -98,17 +100,17 @@ jobs:
         run: |
           docker build \
             --build-arg VITE_API_URL=https://valhall.kebert.se \
-            -t ghcr.io/kebertr/valhall-frontend:latest \
+            -t ghcr.io/kebertr/valhall-frontend:${IMAGE_TAG} \
             ./frontend
 
       - name: Push frontend image
-        run: docker push ghcr.io/kebertr/valhall-frontend:latest
+        run: docker push ghcr.io/kebertr/valhall-frontend:${IMAGE_TAG} 
 
       - name: Build bong-api image
         run: |
           docker build \
-            -t ghcr.io/kebertr/valhall-bong-api:latest \
+            -t ghcr.io/kebertr/valhall-bong-api:${IMAGE_TAG}  \
             ./services/bong-api
 
       - name: Push bong-api image
-        run: docker push ghcr.io/kebertr/valhall-bong-api:latest
+        run: docker push ghcr.io/kebertr/valhall-bong-api:${IMAGE_TAG} 
