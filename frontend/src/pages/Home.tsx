@@ -8,14 +8,14 @@ function Home() {
   const navigate = useNavigate();
 
   const activities = [
-    { icon: "⚔️", text: "Anton gave Joel 2 shots" },
-    { icon: "🍺", text: "Rasmus redeemed 1 shot" },
-    { icon: "⚔️", text: "Joel received 3 shots" },
-    { icon: "👑", text: "Master approved Anton's redemption" },
-    { icon: "⚔️", text: "Filip got 2 shots for being late" },
-    { icon: "🍺", text: "Joel redeemed 2 shots" },
-    { icon: "⚔️", text: "Anton received 1 shot" },
-    { icon: "❌", text: "Master denied a redemption request" },
+    { text: "Anton gave Joel 2 shots" },
+    { text: "Rasmus redeemed 1 shot" },
+    { text: "Joel received 3 shots" },
+    { text: "Master approved Anton's redemption" },
+    { text: "Filip got 2 shots for being late" },
+    { text: "Joel redeemed 2 shots" },
+    { text: "Anton received 1 shot" },
+    { text: "Master denied a redemption request" },
   ];
 
   return (
@@ -78,6 +78,10 @@ function Home() {
             Leaderboard
           </button>
 
+          <button onClick={() => navigate("/gudar")} className="rounded-xl p-3 text-left hover:bg-slate-700">
+            Gudar
+          </button>
+
           <button onClick={() => navigate("/notifications")} className="rounded-xl p-3 text-left hover:bg-slate-700">
             Notifications
           </button>
@@ -104,7 +108,7 @@ function Home() {
             onClick={() => setMenuOpen(true)}
             className="z-10 rounded-lg p-2 text-2xl hover:bg-slate-800"
           >
-            ☰
+            Menu
           </button>
 
           {/* Centered Logo + Title */}
@@ -144,10 +148,6 @@ function Home() {
                   hover:bg-slate-700
                 "
               >
-                <span className="text-2xl">
-                  {activity.icon}
-                </span>
-
                 <span className="text-lg">
                   {activity.text}
                 </span>
@@ -203,7 +203,7 @@ function Home() {
               hover:bg-blue-700
             "
           >
-            🍺 Add Shot
+            Add Shot
           </button>
 
           <button
@@ -220,7 +220,7 @@ function Home() {
               hover:bg-red-800
             "
           >
-            ⚔️ Redeem Shot
+            Redeem Shot
           </button>
         </div>
       </div>

@@ -13,12 +13,31 @@ datasource db {
   provider = "postgresql"
 }
 
-model Shot {
-  id        String   @id @default(uuid())
-  fromName  String
-  toName    String
-  amount    Int
-  reason    String
-  status    String   @default("pending")
-  createdAt DateTime @default(now())
+enum approveStatus {
+  PENDING
+  APPROVED
+  DENIED
+}
+
+
+model Add {
+  id          String   @id @default(uuid())
+  fromId      String
+  toId        String 
+  acceptedId  String?
+  amount      Int
+  reason      String
+  status      approveStatus   @default(PENDING)
+  createdAt   DateTime @default(now())
+}
+
+model Redemption {
+  id            String           @id @default(uuid())
+  toId          String
+  acceptedId    String?
+  amount        Int
+  videoUrl      String
+  status        approveStatus    @default(PENDING)
+  createdAt     DateTime         @default(now())
+  reviewedAt    DateTime?
 }

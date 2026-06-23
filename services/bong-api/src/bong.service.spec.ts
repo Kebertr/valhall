@@ -29,16 +29,16 @@ describe('BongService', () => {
   it('add a bong', async () => {
     //Mocking body sent from frontend
     const body = {
-        name: 'Rasmus',
+        Id: 'Rasmus',
         amount: 5,
         reason: 'testing',
     };
 
     //Answer from prisma and db in the test
-    prisma.shot.create.mockResolvedValueOnce({
+    prisma.add.create.mockResolvedValueOnce({
         id: 'shot-1',
-        fromName: 'Rasmus',
-        toName: body.name,
+        fromId: 'Rasmus',
+        toId: body.Id,
         amount: body.amount,
         reason: body.reason,
         status: 'pending',
@@ -49,19 +49,19 @@ describe('BongService', () => {
 
     //Cehck so it is right
     // eslint-disable-next-line @typescript-eslint/unbound-method
-    expect(prisma.shot.create).toHaveBeenCalledWith({
+    expect(prisma.add.create).toHaveBeenCalledWith({
         data: {
-        toName: body.name,
+        toId: body.Id,
         amount: body.amount,
         reason: body.reason,
-        fromName: 'Rasmus',
+        fromId: 'Rasmus',
         },
     });
 
     expect(result.ok).toBe(true);
     expect(result.message).toBe('Added Rasmus');
     expect(result.received).toMatchObject({
-        name: body.name,
+        Id: body.Id,
         amount: body.amount,
         reason: body.reason,
         status: 'pending',

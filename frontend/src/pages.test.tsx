@@ -13,6 +13,7 @@ describe('Page routes', () => {
     ['/profile', 'Odin'],
     ['/leaderboard', 'Bongs received'],
     ['/notifications', 'Notifications'],
+    ['/gudar', 'Lägg till gud'],
   ])('renders %s', (path, heading) => {
     renderRoute(path)
     expect(

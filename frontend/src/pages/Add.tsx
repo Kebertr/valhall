@@ -20,7 +20,7 @@ function AddShot() {
             "Content-Type": "application/json",
         },
         body: JSON.stringify({
-            name: selectedMember,
+            Id: selectedMember,
             amount: amount,
             reason: reason,
         }),
@@ -78,6 +78,10 @@ function AddShot() {
             Leaderboard
           </button>
 
+          <button onClick={() => navigate("/gudar")} className="rounded-xl p-3 text-left hover:bg-slate-700">
+            Gudar
+          </button>
+
           <button onClick={() => navigate("/notifications")} className="rounded-xl p-3 text-left hover:bg-slate-700">
             Notifications
           </button>
@@ -101,7 +105,7 @@ function AddShot() {
             onClick={() => setMenuOpen(true)}
             className="z-10 rounded-lg p-2 text-2xl hover:bg-slate-800"
           >
-            ☰
+            Menu
           </button>
 
           <div className="absolute left-1/2 top-4 flex -translate-x-1/2 flex-col items-center">
@@ -178,7 +182,7 @@ function AddShot() {
               hover:bg-blue-700
             "
           >
-            🍺 Add Shot
+            Add Shot
           </button>
         </div>
       </main>
@@ -210,7 +214,7 @@ function AddShot() {
             hover:bg-red-800
           "
         >
-          ⚔️ Redeem Shot
+          Redeem Shot
         </button>
       </div>
     </div>

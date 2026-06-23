@@ -59,6 +59,7 @@ function Leaderboard() {
           <button onClick={() => navigate("/")} className="rounded-xl p-3 text-left hover:bg-slate-700">Home</button>
           <button onClick={() => navigate("/add")} className="rounded-xl p-3 text-left hover:bg-slate-700">Add Shot</button>
           <button onClick={() => navigate("/redeem")} className="rounded-xl p-3 text-left hover:bg-slate-700">Redeem Shot</button>
+          <button onClick={() => navigate("/gudar")} className="rounded-xl p-3 text-left hover:bg-slate-700">Gudar</button>
           <button onClick={() => navigate("/notifications")} className="rounded-xl p-3 text-left hover:bg-slate-700">Notifications</button>
 
           <div className="mt-8 border-t border-slate-700 pt-4">
@@ -75,7 +76,7 @@ function Leaderboard() {
             className="z-10 rounded-lg p-2 text-2xl hover:bg-slate-800"
             aria-label="Open menu"
           >
-            ☰
+            Menu
           </button>
           <div className="absolute top-4 left-1/2 flex -translate-x-1/2 flex-col items-center">
             <img src={valhallLogo} alt="Valhall Logo" className="h-24 w-auto object-contain" />
@@ -86,12 +87,12 @@ function Leaderboard() {
 
       <main className="grid gap-6 px-4 pt-16 lg:grid-cols-2">
         <section className="rounded-3xl border border-blue-900/30 bg-slate-800/90 p-5 shadow-2xl">
-          <h2 className="mb-5 text-2xl font-bold text-blue-400">⚔️ Bongs received</h2>
+          <h2 className="mb-5 text-2xl font-bold text-blue-400">Bongs received</h2>
           <Ranking entries={received} />
         </section>
 
         <section className="rounded-3xl border border-red-900/30 bg-slate-800/90 p-5 shadow-2xl">
-          <h2 className="mb-5 text-2xl font-bold text-red-400">🍺 Bongs redeemed</h2>
+          <h2 className="mb-5 text-2xl font-bold text-red-400">Bongs redeemed</h2>
           <Ranking entries={redeemed} />
         </section>
       </main>

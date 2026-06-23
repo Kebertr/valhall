@@ -57,3 +57,6 @@ go into bong-api:
 
 frontend:
 ```npm run dev```
+
+For swagger api with nestJs
+```npm install @nestjs/swagger```
