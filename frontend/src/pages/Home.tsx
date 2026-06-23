@@ -66,28 +66,24 @@ function Home() {
 
 
         <nav className="flex flex-col p-4">
-          <button className="rounded-xl p-3 text-left hover:bg-slate-700">
-            Dashboard
-          </button>
-
           <button aria-label="Add shot from menu" onClick={() => navigate("/add")}className="rounded-xl p-3 text-left hover:bg-slate-700">
             Add Shot
           </button>
 
-          <button className="rounded-xl p-3 text-left hover:bg-slate-700">
+          <button onClick={() => navigate("/redeem")} className="rounded-xl p-3 text-left hover:bg-slate-700">
             Redeem Shot
           </button>
 
-          <button className="rounded-xl p-3 text-left hover:bg-slate-700">
+          <button onClick={() => navigate("/leaderboard")} className="rounded-xl p-3 text-left hover:bg-slate-700">
             Leaderboard
           </button>
 
-          <button className="rounded-xl p-3 text-left hover:bg-slate-700">
+          <button onClick={() => navigate("/notifications")} className="rounded-xl p-3 text-left hover:bg-slate-700">
             Notifications
           </button>
 
         <div className="mt-8 border-t border-slate-700 pt-4">
-          <button className="w-full rounded-xl p-3 text-left hover:bg-slate-700">
+          <button onClick={() => navigate("/profile")} className="w-full rounded-xl p-3 text-left hover:bg-slate-700">
             Edit Profile
           </button>
 
@@ -211,6 +207,7 @@ function Home() {
           </button>
 
           <button
+            onClick={() => navigate("/redeem")}
             className="
               flex-1
               rounded-2xl

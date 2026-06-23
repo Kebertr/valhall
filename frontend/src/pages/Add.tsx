@@ -1,6 +1,7 @@
 import { useState } from "react";
 import valhallLogo from "../assets/valhall.jpg";
 import "../App.css";
+import { useNavigate } from "react-router-dom";
 
 const apiUrl = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
@@ -9,6 +10,7 @@ function AddShot() {
   const [amount, setAmount] = useState(1);
   const [reason, setReason] = useState("");
   const [selectedMember, setSelectedMember] = useState("");
+  const navigate = useNavigate();
 
   async function handleAddShot() {
     try {
@@ -64,24 +66,24 @@ function AddShot() {
         </div>
 
         <nav className="flex flex-col p-4">
-          <button className="rounded-xl p-3 text-left hover:bg-slate-700">
+          <button onClick={() => navigate("/")} className="rounded-xl p-3 text-left hover:bg-slate-700">
             Home
           </button>
 
-          <button className="rounded-xl p-3 text-left hover:bg-slate-700">
+          <button onClick={() => navigate("/redeem")} className="rounded-xl p-3 text-left hover:bg-slate-700">
             Redeem Shot
           </button>
 
-          <button className="rounded-xl p-3 text-left hover:bg-slate-700">
+          <button onClick={() => navigate("/leaderboard")} className="rounded-xl p-3 text-left hover:bg-slate-700">
             Leaderboard
           </button>
 
-          <button className="rounded-xl p-3 text-left hover:bg-slate-700">
+          <button onClick={() => navigate("/notifications")} className="rounded-xl p-3 text-left hover:bg-slate-700">
             Notifications
           </button>
 
           <div className="mt-8 border-t border-slate-700 pt-4">
-            <button className="w-full rounded-xl p-3 text-left hover:bg-slate-700">
+            <button onClick={() => navigate("/profile")} className="w-full rounded-xl p-3 text-left hover:bg-slate-700">
               Edit Profile
             </button>
 
@@ -195,7 +197,7 @@ function AddShot() {
           backdrop-blur
         "
       >
-        <button
+        <button onClick={() => navigate("/redeem")}
           className="
             w-full
             rounded-2xl
