@@ -5,6 +5,7 @@ import Redeem from "./pages/Redeem";
 import Profile from "./pages/Profile";
 import Leaderboard from "./pages/Leaderboard";
 import Notifications from "./pages/Notifications";
+import Gudar from "./pages/Gudar";
 function App() {
   return (
     <BrowserRouter>
@@ -15,6 +16,7 @@ function App() {
         <Route path="/profile" element={<Profile />} />
         <Route path="/leaderboard" element={<Leaderboard />} />
         <Route path="/notifications" element={<Notifications />} />
+        <Route path="/gudar" element={<Gudar />} />
       </Routes>
     </BrowserRouter>
   );

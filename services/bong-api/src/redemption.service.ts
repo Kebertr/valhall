@@ -2,25 +2,23 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from './prisma.service';
 
 @Injectable()
-export class BongService {
+export class RedemptionService {
   constructor(private readonly prisma: PrismaService) {}
-
-  async addShot(body: { Id: string; amount: number; reason: string }) {
-    await this.prisma.add.create({
+  async RedemptionShot(body: { amount: number }) {
+    await this.prisma.redemption.create({
       data: {
-        toId: body.Id,
+        toId: "Rasmus",
         amount: body.amount,
-        reason: body.reason,
-        fromId: 'Rasmus',
+        videoUrl: "Url"
       },
     });
     return {
       ok: true,
-      message: `Added ${body.Id}`,
+      message: `redemed ${"Rasmus"}`,
       received: {
-        Id: body.Id,
+        Id: "Rasmus",
         amount: body.amount,
-        reason: body.reason,
+        reason: "url",
         status: 'pending',
         createdAt: new Date().toISOString(),
       },

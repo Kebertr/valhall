@@ -2,10 +2,12 @@ import { Module } from '@nestjs/common';
 import { BongController } from './bong.controller';
 import { BongService } from './bong.service';
 import { PrismaService } from './prisma.service';
+import { RedemptionService } from './redemption.service';
+import { RedemptionController } from './redemption.controller';
 
 @Module({
   imports: [],
-  controllers: [BongController],
-  providers: [BongService, PrismaService],
+  controllers: [BongController, RedemptionController],
+  providers: [BongService, PrismaService, RedemptionService],
 })
 export class BongModule {}

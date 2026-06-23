@@ -34,7 +34,7 @@ describe('AddShot', () => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        name: 'Rasmus',
+        Id: 'Rasmus',
         amount: 5,
         reason: 'Testing',
       }),

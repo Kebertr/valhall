@@ -32,6 +32,7 @@ function Profile() {
           <button onClick={() => navigate("/add")} className="rounded-xl p-3 text-left hover:bg-slate-700">Add Shot</button>
           <button onClick={() => navigate("/redeem")} className="rounded-xl p-3 text-left hover:bg-slate-700">Redeem Shot</button>
           <button onClick={() => navigate("/leaderboard")} className="rounded-xl p-3 text-left hover:bg-slate-700">Leaderboard</button>
+          <button onClick={() => navigate("/gudar")} className="rounded-xl p-3 text-left hover:bg-slate-700">Gudar</button>
           <button onClick={() => navigate("/notifications")} className="rounded-xl p-3 text-left hover:bg-slate-700">Notifications</button>
 
           <div className="mt-8 border-t border-slate-700 pt-4">
@@ -47,7 +48,7 @@ function Profile() {
             className="z-10 rounded-lg p-2 text-2xl hover:bg-slate-800"
             aria-label="Open menu"
           >
-            ☰
+            Menu
           </button>
           <div className="absolute top-4 left-1/2 flex -translate-x-1/2 flex-col items-center">
             <img src={valhallLogo} alt="Valhall Logo" className="h-24 w-auto object-contain" />
@@ -59,7 +60,7 @@ function Profile() {
       <main className="px-4 pt-16">
         <section className="rounded-3xl border border-blue-900/30 bg-slate-800/90 p-6 text-center shadow-2xl">
           <div className="mx-auto flex h-28 w-28 items-center justify-center rounded-full border-4 border-blue-500 bg-slate-700 text-5xl shadow-lg">
-            🛡️
+            R
           </div>
 
           <p className="mt-6 text-sm font-semibold tracking-widest text-slate-400 uppercase">Godname</p>

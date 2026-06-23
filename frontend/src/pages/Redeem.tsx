@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import valhallLogo from "../assets/valhall.jpg";
 
+const apiUrl = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
+
 function Redeem() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [amount, setAmount] = useState(1);
@@ -9,15 +11,38 @@ function Redeem() {
   const navigate = useNavigate();
 
   const redemptions = [
-    { icon: "🍺", text: "Rasmus redeemed 1 bong" },
-    { icon: "🍺", text: "Joel redeemed 2 bongs" },
-    { icon: "👑", text: "Master approved Anton's redemption" },
+    { text: "Rasmus redeemed 1 bong" },
+    { text: "Joel redeemed 2 bongs" },
+    { text: "Master approved Anton's redemption" },
   ];
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     console.log("Redemption:", { amount, video });
   }
+
+  async function handleRedeem() {
+    try {
+        const response = await fetch(`${apiUrl}/api/redemption`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+            amount: amount
+        }),
+        });
+
+        if (!response.ok) {
+        throw new Error("Failed to redeem shot");
+        }
+
+        const data = await response.json();
+        console.log("redeemed shot:", data);
+    } catch (error) {
+        console.error("Could not redeem shot:", error);
+    }
+    }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 pb-24 text-white">
@@ -55,6 +80,9 @@ function Redeem() {
           <button onClick={() => navigate("/leaderboard")} className="rounded-xl p-3 text-left hover:bg-slate-700">
             Leaderboard
           </button>
+          <button onClick={() => navigate("/gudar")} className="rounded-xl p-3 text-left hover:bg-slate-700">
+            Gudar
+          </button>
           <button onClick={() => navigate("/notifications")} className="rounded-xl p-3 text-left hover:bg-slate-700">
             Notifications
           </button>
@@ -77,7 +105,7 @@ function Redeem() {
             className="z-10 rounded-lg p-2 text-2xl hover:bg-slate-800"
             aria-label="Open menu"
           >
-            ☰
+            Menu
           </button>
           <div className="absolute top-4 left-1/2 flex -translate-x-1/2 flex-col items-center">
             <img src={valhallLogo} alt="Valhall Logo" className="h-24 w-auto object-contain" />
@@ -116,11 +144,11 @@ function Redeem() {
             </label>
           </div>
 
-          <button
+          <button onClick={handleRedeem}
             type="submit"
             className="mt-5 w-full rounded-2xl bg-red-700 py-4 text-lg font-bold transition hover:bg-red-800"
           >
-            ⚔️ Send redemption
+            Send redemption
           </button>
         </form>
 
@@ -129,7 +157,6 @@ function Redeem() {
           <div className="space-y-4">
             {redemptions.map((redemption) => (
               <div key={redemption.text} className="flex items-center gap-4 rounded-2xl bg-slate-700/70 p-5">
-                <span className="text-2xl">{redemption.icon}</span>
                 <span className="text-lg">{redemption.text}</span>
               </div>
             ))}
@@ -143,7 +170,7 @@ function Redeem() {
           aria-label="Add shot from footer"
           className="w-full rounded-2xl bg-blue-600 py-4 text-lg font-bold text-white transition hover:bg-blue-700"
         >
-          🍺 Add Shot
+          Add Shot
         </button>
       </div>
     </div>
