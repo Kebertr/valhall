@@ -1,0 +1,38 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum MemberStatus{
+  VIKING
+  GUD
+  AS
+}
+
+model Member{
+  id          String       @id @default(uuid())
+  memberId    Int          @unique @default(autoincrement())
+
+  // Null until admin links this Valhall member to a Keycloak account
+  keycloakId  String?      @unique
+
+  name        String
+  godname     String      @unique
+  avatarUrl   String?
+
+  status      MemberStatus
+  role        String?
+
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}

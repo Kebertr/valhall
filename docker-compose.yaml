@@ -1,14 +1,14 @@
 version: "3.9"
 
 services:
-  postgres:
+  postgres-bong:
     image: postgres:16
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_DB: ${POSTGRES_DB_BONG}
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB_BONG}"]
       interval: 3s
       retries: 10
     ports:
@@ -17,6 +17,24 @@ services:
       - bong-db-data:/var/lib/postgresql/data
     networks:
       - app-network
+
+  postgres-member:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB_MEMBER}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB_MEMBER}"]
+      interval: 3s
+      retries: 10
+    ports:
+      - "5434:5432"
+    volumes:
+      - member-db-data:/var/lib/postgresql/data
+    networks:
+      - app-network
+
   bong-api:
     build:
       context: ./services/bong-api
@@ -24,9 +42,9 @@ services:
     ports:
       - "3000:3000"
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres-bong:5432/${POSTGRES_DB_BONG}
     depends_on:
-      postgres:
+      postgres-bong:
         condition: service_healthy
     networks:
       - app-network
@@ -45,6 +63,7 @@ services:
 
 volumes:
   bong-db-data:
+  member-db-data:
 
 networks:
   app-network:

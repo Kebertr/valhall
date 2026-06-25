@@ -22,7 +22,7 @@ We use NestJS in backend. To install
 ```sudo npm i -g @nestjs/cli```
 
 and then in root of the project
-```nest new services/valhall-api```
+```nest new services/[name]```
 
 How to run the database locally
 ```sudo pacman -S postgresql```

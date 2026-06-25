@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import valhallLogo from "../assets/valhall.jpg";
+import { authFetch } from "../auth/authFetch";
 
-const apiUrl = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
+const apiUrl = import.meta.env.VITE_API_URL ?? "";
 
 function Redeem() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -23,7 +24,7 @@ function Redeem() {
 
   async function handleRedeem() {
     try {
-        const response = await fetch(`${apiUrl}/api/redemption`, {
+        const response = await authFetch(`${apiUrl}/api/redemption`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",

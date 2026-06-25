@@ -2,8 +2,9 @@ import { useState } from "react";
 import valhallLogo from "../assets/valhall.jpg";
 import "../App.css";
 import { useNavigate } from "react-router-dom";
+import { authFetch } from "../auth/authFetch";
 
-const apiUrl = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
+const apiUrl = import.meta.env.VITE_API_URL ?? "";
 
 function AddShot() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -14,7 +15,7 @@ function AddShot() {
 
   async function handleAddShot() {
     try {
-        const response = await fetch(`${apiUrl}/api/add`, {
+        const response = await authFetch(`${apiUrl}/api/add`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -32,6 +33,10 @@ function AddShot() {
 
         const data = await response.json();
         console.log("Shot added:", data);
+
+        setSelectedMember("");
+        setAmount(1);
+        setReason("");
     } catch (error) {
         console.error("Could not add shot:", error);
     }
@@ -138,6 +143,7 @@ function AddShot() {
 
         <input
             type="text"
+            value={selectedMember}
             placeholder="Write member name..."
             onChange={(e) => {
               setSelectedMember(e.target.value);
@@ -163,6 +169,7 @@ function AddShot() {
             </label>
 
             <textarea
+              value={reason}
               placeholder="Reason..."
               onChange={(e) => setReason(e.target.value)}
               className="min-h-[120px] w-full rounded-xl bg-slate-700 p-4 text-white"
