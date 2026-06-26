@@ -3,3 +3,5 @@ export const keycloakConfig = {
   realm: import.meta.env.VITE_KEYCLOAK_REALM,
   clientId: import.meta.env.VITE_KEYCLOAK_CLIENT_ID,
 };
+
+console.log(keycloakConfig);
