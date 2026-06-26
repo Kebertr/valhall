@@ -15,6 +15,33 @@ const manifestIcons = [
     type: 'image/jpg',
   }
 ]
+
+const devProxy = {
+  '/api/members': {
+    target: 'http://localhost:3001',
+    changeOrigin: true,
+  },
+  '/api/member': {
+    target: 'http://localhost:3001',
+    changeOrigin: true,
+  },
+  '/api': {
+    target: 'http://localhost:3000',
+    changeOrigin: true,
+  },
+  '/api/add': {
+    target: 'http://localhost:3000',
+    changeOrigin: true,
+  },
+}
+
+const previewProxy = {
+  '/api': {
+    target: 'http://bong-api:3000',
+    changeOrigin: true,
+  },
+}
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(),
@@ -22,6 +49,7 @@ export default defineConfig({
             VitePWA({
               registerType: 'autoUpdate',
               workbox: {
+                globIgnores: ['**/config.js'],
                 navigateFallbackDenylist: [/^\/api\//],
               },
               manifest: {
@@ -32,26 +60,14 @@ export default defineConfig({
             })
   ],
   server: {
-    proxy: {
-      '/api/members': {
-        target: 'http://localhost:3001',
-        changeOrigin: true,
-      },
-      '/api/member': {
-        target: 'http://localhost:3001',
-        changeOrigin: true,
-      },
-      '/api': {
-        target: 'http://localhost:3000',
-        changeOrigin: true,
-      },
-    },
+    proxy: devProxy,
   },
   preview: {
     host: true,
-    port: 3000,
+    port: 5173,
+    proxy: previewProxy,
     allowedHosts: [
-      "valhall.kebert.se"
+      "valhall.kebert.se",
       "dev-valhall.kebert.se"
     ],
   },

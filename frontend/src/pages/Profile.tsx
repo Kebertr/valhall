@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import valhallLogo from "../assets/valhall.jpg";
+import LogoutButton from "../auth/LogoutButton";
 
 function Profile() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -36,7 +37,7 @@ function Profile() {
           <button onClick={() => navigate("/notifications")} className="rounded-xl p-3 text-left hover:bg-slate-700">Notifications</button>
 
           <div className="mt-8 border-t border-slate-700 pt-4">
-            <button className="w-full rounded-xl p-3 text-left hover:bg-slate-700">Logout</button>
+            <LogoutButton className="w-full rounded-xl p-3 text-left hover:bg-slate-700" />
           </div>
         </nav>
       </aside>

@@ -3,8 +3,7 @@ import valhallLogo from "../assets/valhall.jpg";
 import "../App.css";
 import { useNavigate } from "react-router-dom";
 import { authFetch } from "../auth/authFetch";
-
-const apiUrl = import.meta.env.VITE_API_URL ?? "";
+import LogoutButton from "../auth/LogoutButton";
 
 function AddShot() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -15,7 +14,7 @@ function AddShot() {
 
   async function handleAddShot() {
     try {
-        const response = await authFetch(`${apiUrl}/api/add`, {
+        const response = await authFetch(`/api/add`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -96,9 +95,7 @@ function AddShot() {
               Edit Profile
             </button>
 
-            <button className="w-full rounded-xl p-3 text-left hover:bg-slate-700">
-              Logout
-            </button>
+            <LogoutButton className="w-full rounded-xl p-3 text-left hover:bg-slate-700" />
           </div>
         </nav>
       </div>

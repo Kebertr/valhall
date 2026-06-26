@@ -1,8 +1,10 @@
-// Keycloak configuration
-// Update these values to match your Keycloak setup
+import { getRuntimeConfig } from "../runtime-config";
+
+const runtimeConfig = getRuntimeConfig();
 
 export const keycloakConfig = {
-  url: 'https://auth.kebert.se',  // Change to your Keycloak URL
-  realm: 'valhall',                                // Your realm name
-  clientId: 'valhall-frontend'                    // Client ID created in Keycloak
+  url: runtimeConfig.keycloakUrl ?? import.meta.env.VITE_KEYCLOAK_URL,
+  realm: runtimeConfig.keycloakRealm ?? import.meta.env.VITE_KEYCLOAK_REALM,
+  clientId:
+    runtimeConfig.keycloakClientId ?? import.meta.env.VITE_KEYCLOAK_CLIENT_ID,
 };

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import valhallLogo from "../assets/valhall.jpg";
 import { authFetch } from "../auth/authFetch";
+import LogoutButton from "../auth/LogoutButton";
 
 type MemberStatus = "VIKING" | "GUD" | "AS";
 
@@ -81,7 +82,7 @@ function Gudar() {
           <button onClick={() => navigate("/notifications")} className="rounded-xl p-3 text-left hover:bg-slate-700">Notifications</button>
           <div className="mt-8 border-t border-slate-700 pt-4">
             <button onClick={() => navigate("/profile")} className="w-full rounded-xl p-3 text-left hover:bg-slate-700">Edit Profile</button>
-            <button className="w-full rounded-xl p-3 text-left hover:bg-slate-700">Logout</button>
+            <LogoutButton className="w-full rounded-xl p-3 text-left hover:bg-slate-700" />
           </div>
         </nav>
       </aside>

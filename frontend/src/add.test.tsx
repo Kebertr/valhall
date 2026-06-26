@@ -3,17 +3,22 @@ import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
 import AddShot from './pages/Add'
+import { authFetch } from './auth/authFetch'
+
+vi.mock('./auth/authFetch', () => ({
+  authFetch: vi.fn(),
+}))
 
 describe('AddShot', () => {
   it('submits the add shot form', async () => {
     const user = userEvent.setup()
 
-    const fetchMock = vi.fn().mockResolvedValue({
+    const authFetchMock = vi.mocked(authFetch)
+
+    authFetchMock.mockResolvedValue({
       ok: true,
       json: async () => ({ ok: true, message: 'Added Rasmus' }),
-    })
-
-    vi.stubGlobal('fetch', fetchMock)
+    }as Response)
 
     render(
       <MemoryRouter>
@@ -28,7 +33,7 @@ describe('AddShot', () => {
 
     await user.click(screen.getByRole('button', { name: /add shot/i }))
 
-    expect(fetchMock).toHaveBeenCalledWith('http://localhost:3000/api/add', {
+    expect(authFetchMock).toHaveBeenCalledWith('/api/add', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
