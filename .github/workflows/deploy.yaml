@@ -108,9 +108,23 @@ jobs:
         run: |
           CHANGED=$(git diff --name-only "${{ github.event.before }}" "${{ github.sha }}")
 
+          if [ "${GITHUB_REF_NAME}" = "dev" ]; then
+            VITE_API_URL=https://dev-valhall.kebert.se
+            VITE_KEYCLOAK_CLIENT_ID=valhall-frontend-dev
+          else
+            VITE_API_URL=https://valhall.kebert.se
+            VITE_KEYCLOAK_CLIENT_ID=valhall-frontend
+          fi
+
+          VITE_KEYCLOAK_URL=https://auth.kebert.se
+          VITE_KEYCLOAK_REALM=valhall
+
           if echo "$CHANGED" | grep -q '^frontend/'; then
             docker build \
-              --build-arg VITE_API_URL=https://valhall.kebert.se \
+              --build-arg VITE_API_URL=$VITE_API_URL \
+              --build-arg VITE_KEYCLOAK_URL=$VITE_KEYCLOAK_URL \
+              --build-arg VITE_KEYCLOAK_REALM=$VITE_KEYCLOAK_REALM \
+              --build-arg VITE_KEYCLOAK_CLIENT_ID=$VITE_KEYCLOAK_CLIENT_ID \
               -t ghcr.io/kebertr/valhall-frontend:${IMAGE_TAG} \
               ./frontend
             docker push ghcr.io/kebertr/valhall-frontend:${IMAGE_TAG}
