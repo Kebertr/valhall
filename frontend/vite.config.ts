@@ -49,7 +49,6 @@ export default defineConfig({
             VitePWA({
               registerType: 'autoUpdate',
               workbox: {
-                globIgnores: ['**/config.js'],
                 navigateFallbackDenylist: [/^\/api\//],
               },
               manifest: {
