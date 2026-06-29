@@ -6,7 +6,6 @@ import { JwtAuthGuard } from './auth/jwt-auth.guard';
 export class MemberController {
   constructor(private readonly memberService: MemberService) {}
 
-  
   @Get('gudar')
   @UseGuards(JwtAuthGuard)
   findAll() {
