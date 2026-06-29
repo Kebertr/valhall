@@ -8,6 +8,8 @@ export async function authFetch(
 
   try {
     await keycloak.updateToken(30);
+    console.log("tjo")
+    console.log("Keycloak token payload:", keycloak.tokenParsed);
   } catch {
     await keycloak.login();
     throw new Error("Login required");

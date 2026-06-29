@@ -1,13 +1,15 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, UseGuards } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { MemberService } from './member.service';
+import { JwtAuthGuard } from './auth/jwt-auth.guard';
 
-@ApiTags('members')
 @Controller('members')
 export class MemberController {
   constructor(private readonly memberService: MemberService) {}
 
+  
   @Get('gudar')
+  @UseGuards(JwtAuthGuard)
   findAll() {
     return this.memberService.findAll();
   }

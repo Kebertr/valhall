@@ -60,3 +60,8 @@ frontend:
 
 For swagger api with nestJs
 ```npm install @nestjs/swagger```
+
+Keycloak in backend nestjs
+```npm install @nestjs/passport passport passport-jwt jwks-rsa```
+```npm install @nestjs/config class-validator class-transformer```
+```npm install -D @types/passport-jwt```
