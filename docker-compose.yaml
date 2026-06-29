@@ -49,6 +49,20 @@ services:
     networks:
       - app-network
 
+  member-api:
+    build:
+      context: ./services/member-api
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres-member:5432/${POSTGRES_DB_MEMBER}
+    depends_on:
+      postgres-member:
+        condition: service_healthy
+    networks:
+      - app-network
+
   frontend:
     build:
       context: ./frontend
@@ -62,6 +76,7 @@ services:
       - "5173:5173"
     depends_on:
       - bong-api
+      - member-api
     networks:
       - app-network
 
