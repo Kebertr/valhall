@@ -136,3 +136,10 @@ jobs:
               ./services/bong-api
             docker push ghcr.io/kebertr/valhall-bong-api:${IMAGE_TAG}
           fi
+
+          if echo "$CHANGED" | grep -q '^services/bong-api/'; then
+            docker build \
+              -t ghcr.io/kebertr/valhall-member-api:${IMAGE_TAG} \
+              ./services/member-api
+            docker push ghcr.io/kebertr/valhall-member-api:${IMAGE_TAG}
+          fi
