@@ -18,32 +18,32 @@ const manifestIcons = [
 
 const devProxy = {
   '/api/members': {
-    target: 'http://localhost:3001',
+    target: 'http://localhost:3002',
     changeOrigin: true,
   },
   '/api/member': {
-    target: 'http://localhost:3001',
+    target: 'http://localhost:3002',
     changeOrigin: true,
   },
   '/api/add': {
-    target: 'http://localhost:3000',
+    target: 'http://localhost:3001',
     changeOrigin: true,
   },
 }
 
 const previewProxy = {
   "/api/members": {
-    target: "http://member-api:3001",
+    target: "http://member-api:3002",
     changeOrigin: true,
   },
 
   "/api/member": {
-    target: "http://member-api:3001",
+    target: "http://member-api:3002",
     changeOrigin: true,
   },
 
   "/api/add": {
-    target: "http://bong-api:3000",
+    target: "http://bong-api:3001",
     changeOrigin: true,
   },
 }

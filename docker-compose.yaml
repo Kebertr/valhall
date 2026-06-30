@@ -38,7 +38,7 @@ services:
       context: ./services/bong-api
       dockerfile: Dockerfile
     ports:
-      - "3000:3000"
+      - "3001:3001"
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres-bong:5432/${POSTGRES_DB_BONG}
       KEYCLOAK_URL: ${KEYCLOAK_URL}
@@ -55,7 +55,7 @@ services:
       context: ./services/member-api
       dockerfile: Dockerfile
     ports:
-      - "3001:3001"
+      - "3002:3002"
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres-member:5432/${POSTGRES_DB_MEMBER}
       KEYCLOAK_URL: ${KEYCLOAK_URL}
@@ -72,7 +72,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        VITE_API_URL: http://localhost:3000
+        VITE_API_URL: http://localhost:3001
         VITE_KEYCLOAK_URL: ${KEYCLOAK_URL}
         VITE_KEYCLOAK_REALM: ${KEYCLOAK_REALM}
         VITE_KEYCLOAK_CLIENT_ID: ${VITE_KEYCLOAK_CLIENT_ID}

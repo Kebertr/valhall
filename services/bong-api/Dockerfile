@@ -22,6 +22,6 @@ COPY --from=build /app/dist ./dist
 COPY --from=build /app/prisma ./prisma
 COPY --from=build /app/prisma.config.ts ./prisma.config.ts
 
-EXPOSE 3000
+EXPOSE 3001
 
 CMD ["npm", "run", "start:docker"]
