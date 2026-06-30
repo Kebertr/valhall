@@ -1,11 +1,14 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
-import { ExtractJwt, Strategy } from 'passport-jwt';
 import { passportJwtSecret } from 'jwks-rsa';
+import { ExtractJwt, Strategy } from 'passport-jwt';
+import { AuthenticatedUser } from './authenticated-user';
 
-interface KeycloakTokenPayload {
+export interface KeycloakTokenPayload {
   sub?: string;
+  email?: string;
+  email_verified?: boolean;
   realm_access?: {
     roles?: string[];
   };
@@ -36,13 +39,15 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  validate(payload: KeycloakTokenPayload) {
+  validate(payload: KeycloakTokenPayload): AuthenticatedUser {
     if (!payload.sub) {
       throw new UnauthorizedException('Invalid token');
     }
 
     return {
       keycloakId: payload.sub,
+      email: payload.email?.trim().toLowerCase(),
+      emailVerified: payload.email_verified === true,
       roles: payload.realm_access?.roles ?? [],
     };
   }

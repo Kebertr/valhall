@@ -1,5 +1,6 @@
 import { useEffect, useState, type PropsWithChildren } from "react";
 import { initializeKeycloak } from "./keycloak";
+import { captureMemberLinkToken } from "./memberLinkToken";
 
 export default function AuthProvider({ children }: PropsWithChildren) {
   const [authenticated, setAuthenticated] = useState(false);
@@ -7,6 +8,8 @@ export default function AuthProvider({ children }: PropsWithChildren) {
 
   useEffect(() => {
     let active = true;
+
+    captureMemberLinkToken();
 
     initializeKeycloak()
       .then((isAuthenticated) => {

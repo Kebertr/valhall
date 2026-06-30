@@ -35,8 +35,8 @@ services:
 
   bong-api:
     build:
-      context: ./services/bong-api
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: services/bong-api/Dockerfile
     ports:
       - "3001:3001"
     environment:
@@ -52,8 +52,8 @@ services:
 
   member-api:
     build:
-      context: ./services/member-api
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: services/member-api/Dockerfile
     ports:
       - "3002:3002"
     environment:
@@ -61,6 +61,7 @@ services:
       KEYCLOAK_URL: ${KEYCLOAK_URL}
       KEYCLOAK_REALM: ${KEYCLOAK_REALM}
       KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
     depends_on:
       postgres-member:
         condition: service_healthy
@@ -69,8 +70,8 @@ services:
 
   frontend:
     build:
-      context: ./frontend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: frontend/Dockerfile
       args:
         VITE_API_URL: http://localhost:3001
         VITE_KEYCLOAK_URL: ${KEYCLOAK_URL}

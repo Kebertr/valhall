@@ -1,0 +1,20 @@
+{
+  "name": "valhall",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "services/*",
+    "frontend"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "build:auth": "npm run build --workspace=@valhall/auth",
+    "build:member": "npm run build --workspace=member-api",
+    "build:bong": "npm run build --workspace=bong-api",
+    "build:frontend": "npm run build --workspace=frontend",
+    "test": "npm run test --workspaces --if-present",
+    "start:member": "npm run start:dev --workspace=member-api",
+    "start:bong": "npm run start:dev --workspace=bong-api",
+    "start:frontend": "npm run dev --workspace=frontend"
+  }
+}

@@ -24,23 +24,19 @@ jobs:
         with:
           node-version: 24
           cache: npm
-          cache-dependency-path: frontend/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
-        working-directory: frontend
         run: npm ci
 
       - name: Lint frontend
-        working-directory: frontend
-        run: npm run lint
+        run: npm run lint --workspace=frontend
 
       - name: Test frontend
-        working-directory: frontend
-        run: npm test -- --run
+        run: npm test --workspace=frontend -- --run
 
       - name: Build frontend
-        working-directory: frontend
-        run: npm run build
+        run: npm run build --workspace=frontend
 
   backend:
     name: Backend checks
@@ -55,54 +51,31 @@ jobs:
         with:
           node-version: 24
           cache: npm
-          cache-dependency-path: services/bong-api/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
-        working-directory: services/bong-api
         run: npm ci
 
-      - name: Generate Prisma client
-        working-directory: services/bong-api
-        run: npx prisma generate
+      - name: Generate Prisma clients
+        run: |
+          npm exec --workspace=bong-api -- prisma generate
+          npm exec --workspace=member-api -- prisma generate
 
-      - name: Lint backend
-        working-directory: services/bong-api
-        run: npm run lint
+      - name: Lint bong API
+        run: npm run lint --workspace=bong-api
 
-      - name: Test backend
-        working-directory: services/bong-api
-        run: npm test
+      - name: Test bong API
+        run: npm test --workspace=bong-api
 
-      - name: Build backend
-        working-directory: services/bong-api
-        run: npm run build
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: npm
-          cache-dependency-path: services/member-api/package-lock.json
-
-      - name: Install dependencies
-        working-directory: services/member-api
-        run: npm ci
-
-      - name: Generate Prisma client
-        working-directory: services/member-api
-        run: npx prisma generate
-
-      - name: Lint backend
-        working-directory: services/member-api
-        run: npm run lint
+      - name: Lint member API
+        run: npm run lint --workspace=member-api
 
       
       #- name: Test backend
       #  working-directory: services/member-api
       #  run: npm test
       
-      - name: Build backend
-        working-directory: services/member-api
+      - name: Build backend workspaces
         run: npm run build
 
   docker-images:
@@ -140,40 +113,39 @@ jobs:
           if [ "${GITHUB_REF_NAME}" = "dev" ]; then
             VITE_API_URL=https://dev-valhall.kebert.se
             VITE_KEYCLOAK_CLIENT_ID=valhall-frontend-dev
-            KEYCLOAK_CLIENT_ID=valhall-api-dev
           else
             VITE_API_URL=https://valhall.kebert.se
             VITE_KEYCLOAK_CLIENT_ID=valhall-frontend
-            KEYCLOAK_CLIENT_ID=valhall-api
           fi
 
           VITE_KEYCLOAK_URL=https://auth.kebert.se
           VITE_KEYCLOAK_REALM=valhall
-          KEYCLOAK_URL=https://auth.kebert.se
-          KEYCLOAK_REALM=valhall
           
 
-          if echo "$CHANGED" | grep -q '^frontend/'; then
+          if echo "$CHANGED" | grep -Eq '^(frontend/|package.json|package-lock.json)'; then
             docker build \
               --build-arg VITE_API_URL=$VITE_API_URL \
               --build-arg VITE_KEYCLOAK_URL=$VITE_KEYCLOAK_URL \
               --build-arg VITE_KEYCLOAK_REALM=$VITE_KEYCLOAK_REALM \
               --build-arg VITE_KEYCLOAK_CLIENT_ID=$VITE_KEYCLOAK_CLIENT_ID \
+              -f frontend/Dockerfile \
               -t ghcr.io/kebertr/valhall-frontend:${IMAGE_TAG} \
-              ./frontend
+              .
             docker push ghcr.io/kebertr/valhall-frontend:${IMAGE_TAG}
           fi
 
-          if echo "$CHANGED" | grep -q '^services/bong-api/'; then
+          if echo "$CHANGED" | grep -Eq '^(services/bong-api/|package.json|package-lock.json)'; then
             docker build \
+              -f services/bong-api/Dockerfile \
               -t ghcr.io/kebertr/valhall-bong-api:${IMAGE_TAG} \
-              ./services/bong-api
+              .
             docker push ghcr.io/kebertr/valhall-bong-api:${IMAGE_TAG}
           fi
 
-          if echo "$CHANGED" | grep -q '^services/member-api/'; then
+          if echo "$CHANGED" | grep -Eq '^(services/member-api/|packages/auth/|package.json|package-lock.json)'; then
             docker build \
+              -f services/member-api/Dockerfile \
               -t ghcr.io/kebertr/valhall-member-api:${IMAGE_TAG} \
-              ./services/member-api
+              .
             docker push ghcr.io/kebertr/valhall-member-api:${IMAGE_TAG}
           fi

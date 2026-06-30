@@ -14,6 +14,7 @@ describe('Page routes', () => {
     ['/leaderboard', 'Bongs received'],
     ['/notifications', 'Notifications'],
     ['/gudar', 'gudar'],
+    ['/link-member', 'Connect member account'],
   ])('renders %s', (path, heading) => {
     renderRoute(path)
     expect(

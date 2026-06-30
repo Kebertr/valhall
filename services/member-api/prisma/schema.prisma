@@ -4,8 +4,8 @@
 // Get a free hosted Postgres database in seconds: `npx create-db`
 
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
   moduleFormat = "cjs"
 }
 
@@ -13,26 +13,38 @@ datasource db {
   provider = "postgresql"
 }
 
-enum MemberStatus{
+enum MemberStatus {
   VIKING
   GUD
   AS
 }
 
-model Member{
-  id          String       @id @default(uuid())
-  memberId    Int          @unique @default(autoincrement())
+model Member {
+  id       String @id @default(uuid())
+  memberId Int    @unique @default(autoincrement())
 
   // Null until admin links this Valhall member to a Keycloak account
-  keycloakId  String?      @unique
+  keycloakId String? @unique
 
-  name        String
-  godname     String      @unique
-  avatarUrl   String?
+  name      String
+  godname   String  @unique
+  avatarUrl String?
 
-  status      MemberStatus
-  role        String?
+  status MemberStatus
+  role   String?
 
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  accountLink MemberAccountLink?
+}
+
+model MemberAccountLink {
+  id             String    @id @default(uuid())
+  tokenHash      String    @unique
+  memberRecordId String    @unique
+  member         Member    @relation(fields: [memberRecordId], references: [id], onDelete: Cascade)
+  expiresAt      DateTime
+  usedAt         DateTime?
+  createdAt      DateTime  @default(now())
 }
