@@ -15,10 +15,33 @@ describe('AddShot', () => {
 
     const authFetchMock = vi.mocked(authFetch)
 
-    authFetchMock.mockResolvedValue({
-      ok: true,
-      json: async () => ({ ok: true, message: 'Added Rasmus' }),
-    }as Response)
+    authFetchMock.mockImplementation((input) => {
+      if (input === '/api/members/shot-targets') {
+        return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve([
+          {
+            id: '550e8400-e29b-41d4-a716-446655440000',
+            name: 'Rasmus',
+            godname: 'Odin',
+            avatarUrl: null,
+          },
+        ]),
+        } as Response)
+      }
+
+      if (input === '/api/add/recent') {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve([]),
+        } as Response)
+      }
+
+      return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ ok: true, message: 'Added shot' }),
+        } as Response)
+    })
 
     render(
       <MemoryRouter>
@@ -26,7 +49,11 @@ describe('AddShot', () => {
       </MemoryRouter>,
     )
 
-    await user.type(screen.getByPlaceholderText(/write member name/i), 'Rasmus')
+    await user.type(
+      await screen.findByPlaceholderText(/search by name/i),
+      'Rasmus',
+    )
+    await user.click(screen.getByRole('button', { name: /odin, rasmus/i }))
     await user.clear(screen.getByRole('spinbutton'))
     await user.type(screen.getByRole('spinbutton'), '5')
     await user.type(screen.getByPlaceholderText(/reason/i), 'Testing')
@@ -39,7 +66,7 @@ describe('AddShot', () => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        Id: 'Rasmus',
+        Id: '550e8400-e29b-41d4-a716-446655440000',
         amount: 5,
         reason: 'Testing',
       }),

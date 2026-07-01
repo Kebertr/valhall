@@ -13,6 +13,10 @@ async function bootstrap() {
     .setTitle('Valhall Member API')
     .setDescription('Members and profiles')
     .setVersion('1.0')
+    .addBearerAuth(
+      { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
+      'keycloak',
+    )
     .build();
 
   const documentFactory = () => SwaggerModule.createDocument(app, config);

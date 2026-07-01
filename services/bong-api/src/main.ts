@@ -11,6 +11,10 @@ async function bootstrap() {
     .setTitle('Valhall Bong API')
     .setDescription('Shots and redemptions')
     .setVersion('1.0')
+    .addBearerAuth(
+      { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
+      'keycloak',
+    )
     .build();
 
   const documentFactory = () => SwaggerModule.createDocument(app, config);

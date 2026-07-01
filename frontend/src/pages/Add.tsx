@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import valhallLogo from "../assets/valhall.jpg";
 import "../App.css";
 import { useNavigate } from "react-router-dom";
@@ -6,11 +6,30 @@ import { authFetch } from "../auth/authFetch";
 import LogoutButton from "../auth/LogoutButton";
 
 type Member = {
-  memberId: number;
+  id: string;
   name: string;
   godname: string;
   avatarUrl: string | null;
 };
+
+type RecentActivity = {
+  id: string;
+  fromName: string;
+  toName: string;
+  amount: number;
+  reason: string;
+  createdAt: string;
+};
+
+async function getRecentActivity() {
+  const response = await authFetch("/api/add/recent");
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch recent activity");
+  }
+
+  return (await response.json()) as RecentActivity[];
+}
 
 function AddShot() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -22,14 +41,30 @@ function AddShot() {
   const [isLoadingMembers, setIsLoadingMembers] = useState(true);
   const [membersError, setMembersError] = useState<string | null>(null);
   const [submitMessage, setSubmitMessage] = useState<string | null>(null);
+  const [activities, setActivities] = useState<RecentActivity[]>([]);
+  const [activityError, setActivityError] = useState<string | null>(null);
   const navigate = useNavigate();
+
+  const fetchRecentActivity = useCallback(async () => {
+    try {
+      const recentActivity = await getRecentActivity();
+      setActivityError(null);
+      setActivities(recentActivity);
+    } catch (error) {
+      setActivityError(
+        error instanceof Error
+          ? error.message
+          : "Could not fetch recent activity",
+      );
+    }
+  }, []);
 
   useEffect(() => {
     let active = true;
 
     async function fetchMembers() {
       try {
-        const response = await authFetch("/api/members/gudar");
+        const response = await authFetch("/api/members/shot-targets");
 
         if (!response.ok) {
           throw new Error("Failed to fetch members");
@@ -54,6 +89,31 @@ function AddShot() {
     }
 
     fetchMembers();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    getRecentActivity()
+      .then((recentActivity) => {
+        if (active) {
+          setActivityError(null);
+          setActivities(recentActivity);
+        }
+      })
+      .catch((error: unknown) => {
+        if (active) {
+          setActivityError(
+            error instanceof Error
+              ? error.message
+              : "Could not fetch recent activity",
+          );
+        }
+      });
 
     return () => {
       active = false;
@@ -89,14 +149,18 @@ function AddShot() {
             "Content-Type": "application/json",
         },
         body: JSON.stringify({
-            Id: String(selectedMember.memberId),
+            Id: selectedMember.id,
             amount: amount,
             reason: reason,
         }),
         });
 
         if (!response.ok) {
-        throw new Error("Failed to add shot");
+        const body = (await response.json().catch(() => null)) as {
+          message?: string;
+        } | null;
+
+        throw new Error(body?.message ?? "Failed to add shot");
         }
 
         await response.json();
@@ -106,6 +170,7 @@ function AddShot() {
         setAmount(1);
         setReason("");
         setSubmitMessage("Shot added.");
+        void fetchRecentActivity();
     } catch (error) {
         setSubmitMessage(
           error instanceof Error ? error.message : "Could not add shot",
@@ -231,7 +296,7 @@ function AddShot() {
           {matchingMembers.length > 0 && (
             <ul className="absolute z-20 mt-2 max-h-72 w-full overflow-y-auto rounded-xl border border-slate-600 bg-slate-800 shadow-2xl">
               {matchingMembers.map((member) => (
-                <li key={member.memberId}>
+                <li key={member.id}>
                   <button
                     type="button"
                     aria-label={`${member.godname}, ${member.name}`}
@@ -316,6 +381,41 @@ function AddShot() {
             Add Shot
           </button>
         </div>
+
+        <section className="mt-6 rounded-3xl border border-blue-900/30 bg-slate-800/90 p-5 shadow-2xl">
+          <h2 className="mb-6 text-3xl font-bold text-blue-400">
+            Senaste aktivitet
+          </h2>
+
+          {activityError && (
+            <p className="text-red-300">{activityError}</p>
+          )}
+
+          {!activityError && activities.length === 0 && (
+            <p className="text-slate-400">Inga bongar har delats ut ännu.</p>
+          )}
+
+          <div className="space-y-4">
+            {activities.map((activity) => (
+              <article
+                key={activity.id}
+                className="rounded-2xl bg-slate-700/70 p-5 transition hover:bg-slate-700"
+              >
+                <p className="text-lg">
+                  <span className="font-semibold">{activity.fromName}</span>
+                  {" gav "}
+                  <span className="font-semibold">{activity.toName}</span>
+                  {` ${activity.amount} ${activity.amount === 1 ? "bong" : "bongar"}`}
+                </p>
+                {activity.reason && (
+                  <p className="mt-1 text-sm text-slate-400">
+                    {activity.reason}
+                  </p>
+                )}
+              </article>
+            ))}
+          </div>
+        </section>
       </main>
 
       {/* Bottom Action Bar */}

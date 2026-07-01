@@ -44,9 +44,12 @@ services:
       KEYCLOAK_URL: ${KEYCLOAK_URL}
       KEYCLOAK_REALM: ${KEYCLOAK_REALM}
       KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID}
+      MEMBER_API_URL: http://member-api:3002
     depends_on:
       postgres-bong:
         condition: service_healthy
+      member-api:
+        condition: service_started
     networks:
       - app-network
 

@@ -3,7 +3,6 @@ import { BongController } from './bong.controller';
 import { BongService } from './bong.service';
 
 jest.mock('@valhall/auth', () => ({
-  CurrentUser: () => () => undefined,
   JwtAuthGuard: class {},
 }));
 
@@ -30,11 +29,7 @@ describe('BongController', () => {
 
   describe('addShot', () => {
     it('should return ok when adding a shot', async () => {
-      const user = {
-        keycloakId: 'keycloak-user-id',
-        emailVerified: true,
-        roles: [],
-      };
+      const authorization = 'Bearer signed-token';
 
       bongService.addShot.mockResolvedValueOnce({
         ok: true,
@@ -53,7 +48,7 @@ describe('BongController', () => {
           amount: 5,
           reason: 'Cool',
         },
-        user,
+        authorization,
       );
 
       // eslint-disable-next-line @typescript-eslint/unbound-method
@@ -63,7 +58,7 @@ describe('BongController', () => {
           amount: 5,
           reason: 'Cool',
         },
-        user,
+        authorization,
       );
 
       expect(result.ok).toBe(true);

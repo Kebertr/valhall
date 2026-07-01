@@ -15,11 +15,16 @@ import {
   RolesGuard,
 } from '@valhall/auth';
 import type { AuthenticatedUser } from '@valhall/auth';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { ConsumeMemberLinkDto } from './dto/consume-member-link.dto';
+import { ResolveShotParticipantsDto } from './dto/resolve-shot-participants.dto';
+import { ResolveMemberNamesDto } from './dto/resolve-member-names.dto';
 import { MemberLinkService } from './member-link.service';
 import { MemberService } from './member.service';
 
 @Controller('members')
+@ApiTags('Members')
+@ApiBearerAuth('keycloak')
 export class MemberController {
   constructor(
     private readonly memberService: MemberService,
@@ -30,6 +35,18 @@ export class MemberController {
   @UseGuards(JwtAuthGuard)
   findAll() {
     return this.memberService.findAll();
+  }
+
+  @Get('shot-targets')
+  @UseGuards(JwtAuthGuard)
+  findShotTargets() {
+    return this.memberService.findShotTargets();
+  }
+
+  @Post('resolve-names')
+  @UseGuards(JwtAuthGuard)
+  resolveNames(@Body() body: ResolveMemberNamesDto) {
+    return this.memberService.findNamesByIds(body.ids);
   }
 
   @Post(':memberId/link-invitations')
@@ -46,5 +63,17 @@ export class MemberController {
     @CurrentUser() user: AuthenticatedUser,
   ) {
     return this.memberLinkService.consumeLink(body.token, user);
+  }
+
+  @Post('shot-participants')
+  @UseGuards(JwtAuthGuard)
+  resolveShotParticipants(
+    @Body() body: ResolveShotParticipantsDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.memberService.resolveShotParticipants(
+      body.targetMemberRecordId,
+      user,
+    );
   }
 }
