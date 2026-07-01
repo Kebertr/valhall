@@ -1,26 +1,95 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import valhallLogo from "../assets/valhall.jpg";
 import "../App.css";
 import { useNavigate } from "react-router-dom";
 import { authFetch } from "../auth/authFetch";
 import LogoutButton from "../auth/LogoutButton";
 
+type Member = {
+  memberId: number;
+  name: string;
+  godname: string;
+  avatarUrl: string | null;
+};
+
 function AddShot() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [amount, setAmount] = useState(1);
   const [reason, setReason] = useState("");
-  const [selectedMember, setSelectedMember] = useState("");
+  const [members, setMembers] = useState<Member[]>([]);
+  const [memberQuery, setMemberQuery] = useState("");
+  const [selectedMember, setSelectedMember] = useState<Member | null>(null);
+  const [isLoadingMembers, setIsLoadingMembers] = useState(true);
+  const [membersError, setMembersError] = useState<string | null>(null);
+  const [submitMessage, setSubmitMessage] = useState<string | null>(null);
   const navigate = useNavigate();
 
+  useEffect(() => {
+    let active = true;
+
+    async function fetchMembers() {
+      try {
+        const response = await authFetch("/api/members/gudar");
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch members");
+        }
+
+        const data = (await response.json()) as Member[];
+
+        if (active) {
+          setMembers(data);
+        }
+      } catch (error) {
+        if (active) {
+          setMembersError(
+            error instanceof Error ? error.message : "Could not fetch members",
+          );
+        }
+      } finally {
+        if (active) {
+          setIsLoadingMembers(false);
+        }
+      }
+    }
+
+    fetchMembers();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const matchingMembers = useMemo(() => {
+    const query = memberQuery.trim().toLocaleLowerCase();
+
+    if (!query || selectedMember) {
+      return [];
+    }
+
+    return members
+      .filter((member) =>
+        `${member.name} ${member.godname}`.toLocaleLowerCase().includes(query),
+      )
+      .slice(0, 8);
+  }, [memberQuery, members, selectedMember]);
+
   async function handleAddShot() {
+    if (!selectedMember || amount < 1) {
+      setSubmitMessage("Choose a member from the suggestions and an amount.");
+      return;
+    }
+
     try {
+        setSubmitMessage(null);
+
         const response = await authFetch(`/api/add`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
         },
         body: JSON.stringify({
-            Id: selectedMember,
+            Id: String(selectedMember.memberId),
             amount: amount,
             reason: reason,
         }),
@@ -30,14 +99,17 @@ function AddShot() {
         throw new Error("Failed to add shot");
         }
 
-        const data = await response.json();
-        console.log("Shot added:", data);
+        await response.json();
 
-        setSelectedMember("");
+        setSelectedMember(null);
+        setMemberQuery("");
         setAmount(1);
         setReason("");
+        setSubmitMessage("Shot added.");
     } catch (error) {
-        console.error("Could not add shot:", error);
+        setSubmitMessage(
+          error instanceof Error ? error.message : "Could not add shot",
+        );
     }
     }
   return (
@@ -133,20 +205,66 @@ function AddShot() {
 
           {/* Member */}
 
-        <div className="mb-5">
+        <div className="relative mb-5">
         <label className="mb-2 block text-lg font-semibold">
             Member
         </label>
 
         <input
             type="text"
-            value={selectedMember}
-            placeholder="Write member name..."
+            value={memberQuery}
+            placeholder={isLoadingMembers ? "Loading members..." : "Search by name..."}
+            disabled={isLoadingMembers || Boolean(membersError)}
+            autoComplete="off"
             onChange={(e) => {
-              setSelectedMember(e.target.value);
+              setMemberQuery(e.target.value);
+              setSelectedMember(null);
+              setSubmitMessage(null);
             }}
-            className="mb-3 w-full rounded-xl bg-slate-700 p-4 text-white"
+            className="w-full rounded-xl bg-slate-700 p-4 text-white disabled:opacity-60"
           />
+
+          {membersError && (
+            <p className="mt-2 text-sm text-red-300">{membersError}</p>
+          )}
+
+          {matchingMembers.length > 0 && (
+            <ul className="absolute z-20 mt-2 max-h-72 w-full overflow-y-auto rounded-xl border border-slate-600 bg-slate-800 shadow-2xl">
+              {matchingMembers.map((member) => (
+                <li key={member.memberId}>
+                  <button
+                    type="button"
+                    aria-label={`${member.godname}, ${member.name}`}
+                    onClick={() => {
+                      setSelectedMember(member);
+                      setMemberQuery(`${member.godname} (${member.name})`);
+                    }}
+                    className="flex w-full items-center gap-3 border-b border-slate-700 p-3 text-left last:border-0 hover:bg-slate-700"
+                  >
+                    {member.avatarUrl ? (
+                      <img
+                        src={member.avatarUrl}
+                        alt=""
+                        className="h-10 w-10 rounded-full object-cover"
+                      />
+                    ) : (
+                      <span className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-600 font-bold">
+                        {member.godname.charAt(0)}
+                      </span>
+                    )}
+                    <span>
+                      <span className="block font-semibold">{member.godname}</span>
+                      <span className="block text-sm text-slate-400">{member.name}</span>
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {memberQuery.trim() && !selectedMember && !isLoadingMembers && !membersError && matchingMembers.length === 0 && (
+            <p className="mt-2 text-sm text-slate-400">No matching members.</p>
+          )}
         </div>
 
         
@@ -173,7 +291,14 @@ function AddShot() {
             />
           </div>
 
+          {submitMessage && (
+            <p className="mb-4 text-sm text-slate-200" role="status">
+              {submitMessage}
+            </p>
+          )}
+
           <button onClick={handleAddShot}
+            disabled={!selectedMember || amount < 1}
             className="
               w-full
               rounded-2xl
@@ -184,6 +309,8 @@ function AddShot() {
               text-white
               transition
               hover:bg-blue-700
+              disabled:cursor-not-allowed
+              disabled:opacity-60
             "
           >
             Add Shot

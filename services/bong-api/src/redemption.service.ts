@@ -7,23 +7,21 @@ export class RedemptionService {
   async RedemptionShot(body: { amount: number }) {
     await this.prisma.redemption.create({
       data: {
-        toId: "Rasmus",
+        toId: 'Rasmus',
         amount: body.amount,
-        videoUrl: "Url"
+        videoUrl: 'Url',
       },
     });
     return {
       ok: true,
-      message: `redemed ${"Rasmus"}`,
+      message: `redemed ${'Rasmus'}`,
       received: {
-        Id: "Rasmus",
+        Id: 'Rasmus',
         amount: body.amount,
-        reason: "url",
+        reason: 'url',
         status: 'pending',
         createdAt: new Date().toISOString(),
       },
     };
   }
-
-
 }

@@ -9,6 +9,7 @@ COPY services/bong-api/package.json ./services/bong-api/package.json
 COPY frontend/package.json ./frontend/package.json
 RUN npm ci
 
+COPY packages/auth ./packages/auth
 COPY services/bong-api ./services/bong-api
 RUN npm exec --workspace=bong-api -- prisma generate
 RUN npm run build --workspace=bong-api
@@ -22,6 +23,7 @@ ENV NODE_ENV=production
 
 COPY --from=build /app/package*.json ./
 COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/packages/auth ./packages/auth
 COPY --from=build /app/services/bong-api/package.json ./services/bong-api/package.json
 COPY --from=build /app/services/bong-api/dist ./services/bong-api/dist
 COPY --from=build /app/services/bong-api/prisma ./services/bong-api/prisma

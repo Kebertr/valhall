@@ -1,17 +1,21 @@
 import { Injectable } from '@nestjs/common';
+import type { AuthenticatedUser } from '@valhall/auth';
 import { PrismaService } from './prisma.service';
 
 @Injectable()
 export class BongService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async addShot(body: { Id: string; amount: number; reason: string }) {
+  async addShot(
+    body: { Id: string; amount: number; reason: string },
+    user: AuthenticatedUser,
+  ) {
     await this.prisma.add.create({
       data: {
         toId: body.Id,
         amount: body.amount,
         reason: body.reason,
-        fromId: 'Rasmus',
+        fromId: user.keycloakId,
       },
     });
     return {
@@ -26,6 +30,4 @@ export class BongService {
       },
     };
   }
-
-
 }
