@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package member;
+
+service MemberService {
+  rpc ResolveShotParticipants(ResolveShotParticipantsRequest)
+      returns (ResolveShotParticipantsResponse);
+
+  rpc ResolveMemberNames(ResolveMemberNamesRequest)
+      returns (ResolveMemberNamesResponse);
+}
+
+message ResolveShotParticipantsRequest {
+  string target_member_record_id = 1;
+}
+
+message ResolveShotParticipantsResponse {
+  string from_id = 1;
+  string to_id = 2;
+}
+
+message ResolveMemberNamesRequest {
+  repeated string ids = 1;
+}
+
+message MemberName {
+  string id = 1;
+  string name = 2;
+}
+
+message ResolveMemberNamesResponse {
+  repeated MemberName members = 1;
+}

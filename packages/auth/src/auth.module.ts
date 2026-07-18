@@ -4,6 +4,7 @@ import { PassportModule } from '@nestjs/passport';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { JwtStrategy } from './jwt.strategy';
 import { RolesGuard } from './roles.guard';
+import { GrpcJwtAuthGuard } from './gRPC-jwt-auth-guard';
 
 @Module({
   imports: [
@@ -12,7 +13,7 @@ import { RolesGuard } from './roles.guard';
       defaultStrategy: 'jwt',
     }),
   ],
-  providers: [JwtStrategy, JwtAuthGuard, RolesGuard],
-  exports: [JwtAuthGuard, RolesGuard],
+  providers: [JwtStrategy, JwtAuthGuard, GrpcJwtAuthGuard, RolesGuard],
+  exports: [JwtAuthGuard, GrpcJwtAuthGuard, RolesGuard],
 })
 export class AuthModule {}

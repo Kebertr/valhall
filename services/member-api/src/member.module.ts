@@ -5,10 +5,11 @@ import { PrismaService } from './prisma.service';
 import { ConfigModule } from '@nestjs/config';
 import { AuthModule } from '@valhall/auth';
 import { MemberLinkService } from './member-link.service';
+import { MemberGrpcController } from './membergRPC.controller';
 
 @Module({
   imports: [ConfigModule.forRoot({ isGlobal: true }), AuthModule],
-  controllers: [MemberController],
+  controllers: [MemberController, MemberGrpcController],
   providers: [MemberService, MemberLinkService, PrismaService],
 })
 export class MemberModule {}

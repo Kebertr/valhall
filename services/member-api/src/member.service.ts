@@ -50,11 +50,13 @@ export class MemberService {
     targetMemberRecordId: string,
     user: AuthenticatedUser,
   ) {
+    console.log(targetMemberRecordId, user.keycloakId);
     const [sender, target] = await this.prisma.$transaction([
       this.prisma.member.findUnique({
         where: { keycloakId: user.keycloakId },
         select: { id: true },
       }),
+      
       this.prisma.member.findUnique({
         where: { id: targetMemberRecordId },
         select: { id: true, status: true },
