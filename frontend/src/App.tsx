@@ -7,6 +7,7 @@ import Leaderboard from "./pages/Leaderboard";
 import Notifications from "./pages/Notifications";
 import Gudar from "./pages/Gudar";
 import LinkMember from "./pages/LinkMember";
+import MemberLinks from "./pages/MemberLinks";
 function App() {
   return (
     <BrowserRouter>
@@ -19,6 +20,7 @@ function App() {
         <Route path="/notifications" element={<Notifications />} />
         <Route path="/gudar" element={<Gudar />} />
         <Route path="/link-member" element={<LinkMember />} />
+        <Route path="/member-links" element={<MemberLinks />} />
       </Routes>
     </BrowserRouter>
   );

@@ -140,10 +140,11 @@ export class BongService implements OnModuleInit {
           this.buildMetadata(authorization),
         ),
       );
-    } catch (err: any) {
+    } catch (error: unknown) {
+      const grpcError = this.toGrpcError(error);
       throw new HttpException(
-        err.details ?? 'Could not validate shot participants',
-        this.mapGrpcToHttpStatus(err.code),
+        grpcError.details ?? 'Could not validate shot participants',
+        this.mapGrpcToHttpStatus(grpcError.code),
       );
     }
   }
@@ -160,12 +161,28 @@ export class BongService implements OnModuleInit {
         ),
       );
       return response.members;
-    } catch (err: any) {
+    } catch (error: unknown) {
+      const grpcError = this.toGrpcError(error);
       throw new HttpException(
         'Could not load recent activity',
-        this.mapGrpcToHttpStatus(err.code),
+        this.mapGrpcToHttpStatus(grpcError.code),
       );
     }
+  }
+
+  private toGrpcError(error: unknown): { code: number; details?: string } {
+    if (typeof error !== 'object' || error === null) {
+      return { code: 13 };
+    }
+
+    const code =
+      'code' in error && typeof error.code === 'number' ? error.code : 13;
+    const details =
+      'details' in error && typeof error.details === 'string'
+        ? error.details
+        : undefined;
+
+    return details ? { code, details } : { code };
   }
 
   private mapGrpcToHttpStatus(grpcCode: number): number {

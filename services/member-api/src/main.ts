@@ -1,9 +1,6 @@
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
-import {
-  MicroserviceOptions,
-  Transport,
-} from '@nestjs/microservices';
+import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { join } from 'node:path';
 import { MemberModule } from './member.module';
@@ -16,10 +13,7 @@ async function bootstrap() {
     transport: Transport.GRPC,
     options: {
       package: 'member',
-      protoPath: join(
-        process.cwd(),
-        '../../proto/member/member.proto',
-      ),
+      protoPath: join(process.cwd(), '../../proto/member/member.proto'),
       url: process.env.GRPC_URL ?? '0.0.0.0:50051',
       loader: {
         keepCase: false,
@@ -58,11 +52,7 @@ async function bootstrap() {
 
   const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
 
-  SwaggerModule.setup(
-    'api/member/docs',
-    app,
-    swaggerDocument,
-  );
+  SwaggerModule.setup('api/member/docs', app, swaggerDocument);
 
   await app.startAllMicroservices();
   await app.listen(process.env.PORT ?? 3002);

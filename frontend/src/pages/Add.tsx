@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { authFetch } from "../auth/authFetch";
 import LogoutButton from "../auth/LogoutButton";
 import { getKeycloak } from "../auth/keycloak";
+import { hasAnyRole } from "../auth/roles";
 
 type Member = {
   id: string;
@@ -335,6 +336,15 @@ function AddShot() {
           >
             Gudar
           </button>
+
+          {hasAnyRole(["ADMIN", "ORDFORANDE"]) && (
+            <button
+              onClick={() => navigate("/member-links")}
+              className="rounded-xl p-3 text-left hover:bg-slate-700"
+            >
+              Medlemslänkar
+            </button>
+          )}
 
           <button
             onClick={() => navigate("/notifications")}

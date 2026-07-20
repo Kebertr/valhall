@@ -43,6 +43,13 @@ export class MemberController {
     return this.memberService.findShotTargets();
   }
 
+  @Get('unlinked')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN, Role.ORDFORANDE)
+  findUnlinked() {
+    return this.memberService.findUnlinked();
+  }
+
   @Post('resolve-names')
   @UseGuards(JwtAuthGuard)
   resolveNames(@Body() body: ResolveMemberNamesDto) {

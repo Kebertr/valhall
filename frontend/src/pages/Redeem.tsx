@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import valhallLogo from "../assets/valhall.jpg";
 import { authFetch } from "../auth/authFetch";
 import LogoutButton from "../auth/LogoutButton";
+import { hasAnyRole } from "../auth/roles";
 
 const apiUrl = import.meta.env.VITE_API_URL ?? "";
 
@@ -25,26 +26,26 @@ function Redeem() {
 
   async function handleRedeem() {
     try {
-        const response = await authFetch(`${apiUrl}/api/redemption`, {
+      const response = await authFetch(`${apiUrl}/api/redemption`, {
         method: "POST",
         headers: {
-            "Content-Type": "application/json",
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
-            amount: amount
+          amount: amount,
         }),
-        });
+      });
 
-        if (!response.ok) {
+      if (!response.ok) {
         throw new Error("Failed to redeem shot");
-        }
+      }
 
-        const data = await response.json();
-        console.log("redeemed shot:", data);
+      const data = await response.json();
+      console.log("redeemed shot:", data);
     } catch (error) {
-        console.error("Could not redeem shot:", error);
+      console.error("Could not redeem shot:", error);
     }
-    }
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 pb-24 text-white">
@@ -73,24 +74,50 @@ function Redeem() {
         </div>
 
         <nav className="flex flex-col p-4">
-          <button onClick={() => navigate("/")} className="rounded-xl p-3 text-left hover:bg-slate-700">
+          <button
+            onClick={() => navigate("/")}
+            className="rounded-xl p-3 text-left hover:bg-slate-700"
+          >
             Hem
           </button>
-          <button onClick={() => navigate("/add")} className="rounded-xl p-3 text-left hover:bg-slate-700">
+          <button
+            onClick={() => navigate("/add")}
+            className="rounded-xl p-3 text-left hover:bg-slate-700"
+          >
             Ge bong
           </button>
-          <button onClick={() => navigate("/leaderboard")} className="rounded-xl p-3 text-left hover:bg-slate-700">
+          <button
+            onClick={() => navigate("/leaderboard")}
+            className="rounded-xl p-3 text-left hover:bg-slate-700"
+          >
             Topplista
           </button>
-          <button onClick={() => navigate("/gudar")} className="rounded-xl p-3 text-left hover:bg-slate-700">
+          <button
+            onClick={() => navigate("/gudar")}
+            className="rounded-xl p-3 text-left hover:bg-slate-700"
+          >
             Gudar
           </button>
-          <button onClick={() => navigate("/notifications")} className="rounded-xl p-3 text-left hover:bg-slate-700">
+          {hasAnyRole(["ADMIN", "ORDFORANDE"]) && (
+            <button
+              onClick={() => navigate("/member-links")}
+              className="rounded-xl p-3 text-left hover:bg-slate-700"
+            >
+              Medlemslänkar
+            </button>
+          )}
+          <button
+            onClick={() => navigate("/notifications")}
+            className="rounded-xl p-3 text-left hover:bg-slate-700"
+          >
             Notiser
           </button>
 
           <div className="mt-8 border-t border-slate-700 pt-4">
-            <button onClick={() => navigate("/profile")} className="w-full rounded-xl p-3 text-left hover:bg-slate-700">
+            <button
+              onClick={() => navigate("/profile")}
+              className="w-full rounded-xl p-3 text-left hover:bg-slate-700"
+            >
               Redigera profil
             </button>
             <LogoutButton className="w-full rounded-xl p-3 text-left hover:bg-slate-700" />
@@ -108,8 +135,14 @@ function Redeem() {
             ☰
           </button>
           <div className="absolute top-4 left-1/2 flex -translate-x-1/2 flex-col items-center">
-            <img src={valhallLogo} alt="Valhall Logo" className="h-24 w-auto object-contain" />
-            <h1 className="mt-2 text-3xl font-bold tracking-wider text-blue-500">Valhall</h1>
+            <img
+              src={valhallLogo}
+              alt="Valhall Logo"
+              className="h-24 w-auto object-contain"
+            />
+            <h1 className="mt-2 text-3xl font-bold tracking-wider text-blue-500">
+              Valhall
+            </h1>
           </div>
         </div>
       </header>
@@ -144,7 +177,8 @@ function Redeem() {
             </label>
           </div>
 
-          <button onClick={handleRedeem}
+          <button
+            onClick={handleRedeem}
             type="submit"
             className="mt-5 w-full rounded-2xl bg-red-700 py-4 text-lg font-bold transition hover:bg-red-800"
           >
@@ -153,10 +187,15 @@ function Redeem() {
         </form>
 
         <section className="rounded-3xl border border-blue-900/30 bg-slate-800/90 p-5 shadow-2xl">
-          <h2 className="mb-5 text-2xl font-bold text-blue-400">Recent redemptions</h2>
+          <h2 className="mb-5 text-2xl font-bold text-blue-400">
+            Recent redemptions
+          </h2>
           <div className="space-y-4">
             {redemptions.map((redemption) => (
-              <div key={redemption.text} className="flex items-center gap-4 rounded-2xl bg-slate-700/70 p-5">
+              <div
+                key={redemption.text}
+                className="flex items-center gap-4 rounded-2xl bg-slate-700/70 p-5"
+              >
                 <span className="text-lg">{redemption.text}</span>
               </div>
             ))}

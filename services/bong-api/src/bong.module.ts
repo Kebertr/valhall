@@ -24,7 +24,7 @@ import { BongmeisterService } from './bongmeister.service';
           options: {
             package: 'member',
             protoPath: join(process.cwd(), '../../proto/member/member.proto'),
-            url: config.get('MEMBER_GRPC_URL', 'localhost:50051'),
+            url: config.get<string>('MEMBER_GRPC_URL') ?? 'localhost:50051',
           },
         }),
         inject: [ConfigService],

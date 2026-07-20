@@ -36,6 +36,18 @@ export class MemberService {
     });
   }
 
+  findUnlinked() {
+    return this.prisma.member.findMany({
+      where: { keycloakId: null },
+      orderBy: { godname: 'asc' },
+      select: {
+        memberId: true,
+        name: true,
+        godname: true,
+      },
+    });
+  }
+
   findNamesByIds(ids: string[]) {
     return this.prisma.member.findMany({
       where: { id: { in: ids } },

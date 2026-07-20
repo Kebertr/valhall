@@ -94,6 +94,24 @@ describe('MemberService', () => {
     });
   });
 
+  describe('findUnlinked', () => {
+    it('lists only members without a Keycloak account', async () => {
+      prisma.member.findMany.mockResolvedValueOnce([]);
+
+      await service.findUnlinked();
+
+      expect(prisma.member.findMany).toHaveBeenCalledWith({
+        where: { keycloakId: null },
+        orderBy: { godname: 'asc' },
+        select: {
+          memberId: true,
+          name: true,
+          godname: true,
+        },
+      });
+    });
+  });
+
   describe('resolveShotParticipants', () => {
     it('returns the sender and GUD target record IDs', async () => {
       prisma.member.findUnique

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import valhallLogo from "../assets/valhall.jpg";
 import LogoutButton from "../auth/LogoutButton";
+import { hasAnyRole } from "../auth/roles";
 
 function Profile() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -10,7 +11,10 @@ function Profile() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 pb-24 text-white">
       {menuOpen && (
-        <div className="fixed inset-0 z-40 bg-black/60" onClick={() => setMenuOpen(false)} />
+        <div
+          className="fixed inset-0 z-40 bg-black/60"
+          onClick={() => setMenuOpen(false)}
+        />
       )}
 
       <aside
@@ -20,7 +24,9 @@ function Profile() {
       >
         <div className="border-b border-slate-700 p-6">
           <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-600 font-bold">R</div>
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-600 font-bold">
+              R
+            </div>
             <div>
               <p className="font-semibold">Rasmus</p>
               <p className="text-sm text-slate-400">ACTIVE</p>
@@ -29,12 +35,50 @@ function Profile() {
         </div>
 
         <nav className="flex flex-col p-4">
-          <button onClick={() => navigate("/")} className="rounded-xl p-3 text-left hover:bg-slate-700">Hem</button>
-          <button onClick={() => navigate("/add")} className="rounded-xl p-3 text-left hover:bg-slate-700">Ge bong</button>
-          <button onClick={() => navigate("/redeem")} className="rounded-xl p-3 text-left hover:bg-slate-700">Lös in bong</button>
-          <button onClick={() => navigate("/leaderboard")} className="rounded-xl p-3 text-left hover:bg-slate-700">Topplista</button>
-          <button onClick={() => navigate("/gudar")} className="rounded-xl p-3 text-left hover:bg-slate-700">Gudar</button>
-          <button onClick={() => navigate("/notifications")} className="rounded-xl p-3 text-left hover:bg-slate-700">Notiser</button>
+          <button
+            onClick={() => navigate("/")}
+            className="rounded-xl p-3 text-left hover:bg-slate-700"
+          >
+            Hem
+          </button>
+          <button
+            onClick={() => navigate("/add")}
+            className="rounded-xl p-3 text-left hover:bg-slate-700"
+          >
+            Ge bong
+          </button>
+          <button
+            onClick={() => navigate("/redeem")}
+            className="rounded-xl p-3 text-left hover:bg-slate-700"
+          >
+            Lös in bong
+          </button>
+          <button
+            onClick={() => navigate("/leaderboard")}
+            className="rounded-xl p-3 text-left hover:bg-slate-700"
+          >
+            Topplista
+          </button>
+          <button
+            onClick={() => navigate("/gudar")}
+            className="rounded-xl p-3 text-left hover:bg-slate-700"
+          >
+            Gudar
+          </button>
+          {hasAnyRole(["ADMIN", "ORDFORANDE"]) && (
+            <button
+              onClick={() => navigate("/member-links")}
+              className="rounded-xl p-3 text-left hover:bg-slate-700"
+            >
+              Medlemslänkar
+            </button>
+          )}
+          <button
+            onClick={() => navigate("/notifications")}
+            className="rounded-xl p-3 text-left hover:bg-slate-700"
+          >
+            Notiser
+          </button>
 
           <div className="mt-8 border-t border-slate-700 pt-4">
             <LogoutButton className="w-full rounded-xl p-3 text-left hover:bg-slate-700" />
@@ -52,8 +96,14 @@ function Profile() {
             ☰
           </button>
           <div className="absolute top-4 left-1/2 flex -translate-x-1/2 flex-col items-center">
-            <img src={valhallLogo} alt="Valhall Logo" className="h-24 w-auto object-contain" />
-            <h1 className="mt-2 text-3xl font-bold tracking-wider text-blue-500">Valhall</h1>
+            <img
+              src={valhallLogo}
+              alt="Valhall Logo"
+              className="h-24 w-auto object-contain"
+            />
+            <h1 className="mt-2 text-3xl font-bold tracking-wider text-blue-500">
+              Valhall
+            </h1>
           </div>
         </div>
       </header>
@@ -64,7 +114,9 @@ function Profile() {
             R
           </div>
 
-          <p className="mt-6 text-sm font-semibold tracking-widest text-slate-400 uppercase">Godname</p>
+          <p className="mt-6 text-sm font-semibold tracking-widest text-slate-400 uppercase">
+            Godname
+          </p>
           <h2 className="mt-1 text-3xl font-bold text-blue-400">Odin</h2>
 
           <button className="mt-8 w-full rounded-2xl bg-blue-600 py-4 text-lg font-bold transition hover:bg-blue-700">

@@ -3,6 +3,7 @@ import valhallLogo from ".././assets/valhall.jpg";
 import ".././App.css";
 import { useNavigate } from "react-router-dom";
 import LogoutButton from "../auth/LogoutButton";
+import { hasAnyRole } from "../auth/roles";
 
 function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -35,7 +36,6 @@ function Home() {
           menuOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-    
         <div className="border-b border-slate-700 p-6">
           <div className="flex items-center gap-3">
             <div
@@ -54,54 +54,75 @@ function Home() {
             </div>
 
             <div>
-              <p className="font-semibold">
-                Rasmus
-              </p>
+              <p className="font-semibold">Rasmus</p>
 
-              <p className="text-sm text-slate-400">
-                ACTIVE
-              </p>
+              <p className="text-sm text-slate-400">ACTIVE</p>
             </div>
           </div>
         </div>
 
-
         <nav className="flex flex-col p-4">
-          <button aria-label="Add shot from menu" onClick={() => navigate("/add")}className="rounded-xl p-3 text-left hover:bg-slate-700">
+          <button
+            aria-label="Add shot from menu"
+            onClick={() => navigate("/add")}
+            className="rounded-xl p-3 text-left hover:bg-slate-700"
+          >
             Ge bong
           </button>
 
-          <button onClick={() => navigate("/redeem")} className="rounded-xl p-3 text-left hover:bg-slate-700">
+          <button
+            onClick={() => navigate("/redeem")}
+            className="rounded-xl p-3 text-left hover:bg-slate-700"
+          >
             Lös in bong
           </button>
 
-          <button onClick={() => navigate("/leaderboard")} className="rounded-xl p-3 text-left hover:bg-slate-700">
+          <button
+            onClick={() => navigate("/leaderboard")}
+            className="rounded-xl p-3 text-left hover:bg-slate-700"
+          >
             Topplista
           </button>
 
-          <button onClick={() => navigate("/gudar")} className="rounded-xl p-3 text-left hover:bg-slate-700">
+          <button
+            onClick={() => navigate("/gudar")}
+            className="rounded-xl p-3 text-left hover:bg-slate-700"
+          >
             Gudar
           </button>
 
-          <button onClick={() => navigate("/notifications")} className="rounded-xl p-3 text-left hover:bg-slate-700">
+          {hasAnyRole(["ADMIN", "ORDFORANDE"]) && (
+            <button
+              onClick={() => navigate("/member-links")}
+              className="rounded-xl p-3 text-left hover:bg-slate-700"
+            >
+              Medlemslänkar
+            </button>
+          )}
+
+          <button
+            onClick={() => navigate("/notifications")}
+            className="rounded-xl p-3 text-left hover:bg-slate-700"
+          >
             Notiser
           </button>
 
-        <div className="mt-8 border-t border-slate-700 pt-4">
-          <button onClick={() => navigate("/profile")} className="w-full rounded-xl p-3 text-left hover:bg-slate-700">
-            Redigera profil
-          </button>
+          <div className="mt-8 border-t border-slate-700 pt-4">
+            <button
+              onClick={() => navigate("/profile")}
+              className="w-full rounded-xl p-3 text-left hover:bg-slate-700"
+            >
+              Redigera profil
+            </button>
 
-          <LogoutButton className="w-full rounded-xl p-3 text-left hover:bg-slate-700" />
-        </div>
-
+            <LogoutButton className="w-full rounded-xl p-3 text-left hover:bg-slate-700" />
+          </div>
         </nav>
       </div>
 
       {/* Header */}
       <header className="sticky top-0 z-30 border-b border-slate-800 bg-slate-950/90 backdrop-blur">
         <div className="relative flex min-h-[160px] items-start p-4">
-
           {/* Menu Button */}
           <button
             onClick={() => setMenuOpen(true)}
@@ -147,9 +168,7 @@ function Home() {
                   hover:bg-slate-700
                 "
               >
-                <span className="text-lg">
-                  {activity.text}
-                </span>
+                <span className="text-lg">{activity.text}</span>
               </div>
             ))}
           </div>
@@ -189,7 +208,9 @@ function Home() {
         "
       >
         <div className="flex gap-3">
-          <button aria-label="Add shot from footer" onClick={() => navigate("/add")}
+          <button
+            aria-label="Add shot from footer"
+            onClick={() => navigate("/add")}
             className="
               flex-1
               rounded-2xl

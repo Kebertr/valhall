@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import valhallLogo from "../assets/valhall.jpg";
 import LogoutButton from "../auth/LogoutButton";
+import { hasAnyRole } from "../auth/roles";
 
 type Notification = {
   id: number;
@@ -54,7 +55,10 @@ function Notifications() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 pb-16 text-white">
       {menuOpen && (
-        <div className="fixed inset-0 z-40 bg-black/60" onClick={() => setMenuOpen(false)} />
+        <div
+          className="fixed inset-0 z-40 bg-black/60"
+          onClick={() => setMenuOpen(false)}
+        />
       )}
 
       <aside
@@ -64,7 +68,9 @@ function Notifications() {
       >
         <div className="border-b border-slate-700 p-6">
           <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-600 font-bold">R</div>
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-600 font-bold">
+              R
+            </div>
             <div>
               <p className="font-semibold">Rasmus</p>
               <p className="text-sm text-slate-400">ACTIVE</p>
@@ -73,14 +79,52 @@ function Notifications() {
         </div>
 
         <nav className="flex flex-col p-4">
-          <button onClick={() => navigate("/")} className="rounded-xl p-3 text-left hover:bg-slate-700">Hem</button>
-          <button onClick={() => navigate("/add")} className="rounded-xl p-3 text-left hover:bg-slate-700">Ge bong</button>
-          <button onClick={() => navigate("/redeem")} className="rounded-xl p-3 text-left hover:bg-slate-700">Lös in bong</button>
-          <button onClick={() => navigate("/leaderboard")} className="rounded-xl p-3 text-left hover:bg-slate-700">Topplista</button>
-          <button onClick={() => navigate("/gudar")} className="rounded-xl p-3 text-left hover:bg-slate-700">Gudar</button>
+          <button
+            onClick={() => navigate("/")}
+            className="rounded-xl p-3 text-left hover:bg-slate-700"
+          >
+            Hem
+          </button>
+          <button
+            onClick={() => navigate("/add")}
+            className="rounded-xl p-3 text-left hover:bg-slate-700"
+          >
+            Ge bong
+          </button>
+          <button
+            onClick={() => navigate("/redeem")}
+            className="rounded-xl p-3 text-left hover:bg-slate-700"
+          >
+            Lös in bong
+          </button>
+          <button
+            onClick={() => navigate("/leaderboard")}
+            className="rounded-xl p-3 text-left hover:bg-slate-700"
+          >
+            Topplista
+          </button>
+          <button
+            onClick={() => navigate("/gudar")}
+            className="rounded-xl p-3 text-left hover:bg-slate-700"
+          >
+            Gudar
+          </button>
+          {hasAnyRole(["ADMIN", "ORDFORANDE"]) && (
+            <button
+              onClick={() => navigate("/member-links")}
+              className="rounded-xl p-3 text-left hover:bg-slate-700"
+            >
+              Medlemslänkar
+            </button>
+          )}
 
           <div className="mt-8 border-t border-slate-700 pt-4">
-            <button onClick={() => navigate("/profile")} className="w-full rounded-xl p-3 text-left hover:bg-slate-700">Redigera profil</button>
+            <button
+              onClick={() => navigate("/profile")}
+              className="w-full rounded-xl p-3 text-left hover:bg-slate-700"
+            >
+              Redigera profil
+            </button>
             <LogoutButton className="w-full rounded-xl p-3 text-left hover:bg-slate-700" />
           </div>
         </nav>
@@ -96,36 +140,53 @@ function Notifications() {
             ☰
           </button>
           <div className="absolute top-4 left-1/2 flex -translate-x-1/2 flex-col items-center">
-            <img src={valhallLogo} alt="Valhall Logo" className="h-24 w-auto object-contain" />
-            <h1 className="mt-2 text-3xl font-bold tracking-wider text-blue-500">Valhall</h1>
+            <img
+              src={valhallLogo}
+              alt="Valhall Logo"
+              className="h-24 w-auto object-contain"
+            />
+            <h1 className="mt-2 text-3xl font-bold tracking-wider text-blue-500">
+              Valhall
+            </h1>
           </div>
         </div>
       </header>
 
       <main className="px-4 pt-16">
         <section className="rounded-3xl border border-blue-900/30 bg-slate-800/90 p-5 shadow-2xl">
-          <h2 className="mb-6 text-3xl font-bold text-blue-400">Notifications</h2>
+          <h2 className="mb-6 text-3xl font-bold text-blue-400">
+            Notifications
+          </h2>
 
           <div className="space-y-4">
             {notifications.map((notification) => (
-              <article key={notification.id} className="rounded-2xl bg-slate-700/70 p-5">
+              <article
+                key={notification.id}
+                className="rounded-2xl bg-slate-700/70 p-5"
+              >
                 <div className="flex gap-4">
                   <div>
                     <h3 className="text-lg font-bold">{notification.title}</h3>
-                    <p className="mt-1 text-slate-300">{notification.message}</p>
+                    <p className="mt-1 text-slate-300">
+                      {notification.message}
+                    </p>
                   </div>
                 </div>
 
                 {notification.actionable && !notification.status && (
                   <div className="mt-5 grid grid-cols-2 gap-3">
                     <button
-                      onClick={() => answerNotification(notification.id, "denied")}
+                      onClick={() =>
+                        answerNotification(notification.id, "denied")
+                      }
                       className="rounded-xl bg-red-700 py-3 font-bold transition hover:bg-red-800"
                     >
                       Deny
                     </button>
                     <button
-                      onClick={() => answerNotification(notification.id, "accepted")}
+                      onClick={() =>
+                        answerNotification(notification.id, "accepted")
+                      }
                       className="rounded-xl bg-green-700 py-3 font-bold transition hover:bg-green-800"
                     >
                       Accept
@@ -134,7 +195,9 @@ function Notifications() {
                 )}
 
                 {notification.status && (
-                  <p className={`mt-4 font-bold ${notification.status === "accepted" ? "text-green-400" : "text-red-400"}`}>
+                  <p
+                    className={`mt-4 font-bold ${notification.status === "accepted" ? "text-green-400" : "text-red-400"}`}
+                  >
                     {notification.status === "accepted" ? "Accepted" : "Denied"}
                   </p>
                 )}
