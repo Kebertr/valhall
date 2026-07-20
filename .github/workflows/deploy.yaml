@@ -61,6 +61,9 @@ jobs:
           npm exec --workspace=bong-api -- prisma generate
           npm exec --workspace=member-api -- prisma generate
 
+      - name: Build shared auth package
+        run: npm run build:auth
+
       - name: Lint bong API
         run: npm run lint --workspace=bong-api
 
