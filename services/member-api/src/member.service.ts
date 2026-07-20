@@ -43,27 +43,21 @@ export class MemberService {
     });
   }
 
+  resolveCurrentMember(user: AuthenticatedUser) {
+    return this.findCurrentMember(user);
+  }
+
   async resolveShotParticipants(
     targetMemberRecordId: string,
     user: AuthenticatedUser,
   ) {
     const [sender, target] = await Promise.all([
-      this.prisma.member.findUnique({
-        where: { keycloakId: user.keycloakId },
-        select: { id: true },
-      }),
+      this.findCurrentMember(user),
       this.prisma.member.findUnique({
         where: { id: targetMemberRecordId },
         select: { id: true, status: true },
       }),
     ]);
-
-    if (!sender) {
-      throw new RpcException({
-        code: GrpcStatus.PERMISSION_DENIED, // 7
-        details: 'Connect your member account first',
-      });
-    }
 
     if (!target) {
       throw new RpcException({
@@ -87,5 +81,21 @@ export class MemberService {
     }
 
     return { fromId: sender.id, toId: target.id };
+  }
+
+  private async findCurrentMember(user: AuthenticatedUser) {
+    const member = await this.prisma.member.findUnique({
+      where: { keycloakId: user.keycloakId },
+      select: { id: true },
+    });
+
+    if (!member) {
+      throw new RpcException({
+        code: GrpcStatus.PERMISSION_DENIED,
+        details: 'Connect your member account first',
+      });
+    }
+
+    return member;
   }
 }

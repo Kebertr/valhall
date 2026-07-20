@@ -178,6 +178,33 @@ describe('MemberService', () => {
       });
     });
   });
+
+  describe('resolveCurrentMember', () => {
+    it('returns the member linked to the authenticated Keycloak user', async () => {
+      prisma.member.findUnique.mockResolvedValueOnce({ id: 'member-id' });
+
+      await expect(service.resolveCurrentMember(user)).resolves.toEqual({
+        id: 'member-id',
+      });
+      expect(prisma.member.findUnique).toHaveBeenCalledWith({
+        where: { keycloakId: user.keycloakId },
+        select: { id: true },
+      });
+    });
+
+    it('rejects when the authenticated user has no linked member', async () => {
+      prisma.member.findUnique.mockResolvedValueOnce(null);
+
+      const error = await captureRpcException(
+        service.resolveCurrentMember(user),
+      );
+
+      expect(error.getError()).toEqual({
+        code: GrpcStatus.PERMISSION_DENIED,
+        details: 'Connect your member account first',
+      });
+    });
+  });
 });
 
 async function captureRpcException(

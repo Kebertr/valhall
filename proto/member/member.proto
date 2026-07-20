@@ -8,6 +8,9 @@ service MemberService {
 
   rpc ResolveMemberNames(ResolveMemberNamesRequest)
       returns (ResolveMemberNamesResponse);
+
+  rpc ResolveCurrentMember(ResolveCurrentMemberRequest)
+      returns (ResolveCurrentMemberResponse);
 }
 
 message ResolveShotParticipantsRequest {
@@ -30,4 +33,10 @@ message MemberName {
 
 message ResolveMemberNamesResponse {
   repeated MemberName members = 1;
+}
+
+message ResolveCurrentMemberRequest {}
+
+message ResolveCurrentMemberResponse {
+  string id = 1;
 }

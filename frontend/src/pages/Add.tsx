@@ -4,6 +4,7 @@ import "../App.css";
 import { useNavigate } from "react-router-dom";
 import { authFetch } from "../auth/authFetch";
 import LogoutButton from "../auth/LogoutButton";
+import { getKeycloak } from "../auth/keycloak";
 
 type Member = {
   id: string;
@@ -18,8 +19,26 @@ type RecentActivity = {
   toName: string;
   amount: number;
   reason: string;
+  status: "PENDING" | "APPROVED" | "DENIED";
+  acceptedByName: string | null;
   createdAt: string;
 };
+
+const statusLabels = {
+  PENDING: "Väntar",
+  APPROVED: "OK",
+  DENIED: "Nekad",
+};
+
+function activityStatus(activity: RecentActivity) {
+  const label = statusLabels[activity.status];
+
+  if (activity.status === "PENDING" || !activity.acceptedByName) {
+    return label;
+  }
+
+  return `${label} från ${activity.acceptedByName}`;
+}
 
 async function getRecentActivity(skip = 0) {
   const url = skip > 0 ? `/api/add/recent?skip=${skip}` : "/api/add/recent";
@@ -46,6 +65,14 @@ function AddShot() {
   const [activityError, setActivityError] = useState<string | null>(null);
   const [isLoadingMoreActivities, setIsLoadingMoreActivities] = useState(false);
   const navigate = useNavigate();
+  const roles =
+    (
+      getKeycloak().tokenParsed as
+        { realm_access?: { roles?: string[] } } | undefined
+    )?.realm_access?.roles ?? [];
+  const isBongmeister = roles.some((role) =>
+    ["ADMIN", "BONGMEISTER"].includes(role.toUpperCase()),
+  );
 
   const fetchRecentActivity = useCallback(async () => {
     try {
@@ -156,6 +183,56 @@ function AddShot() {
     } finally {
       setIsLoadingMoreActivities(false);
     }
+  }
+
+  async function moderateActivity(
+    activity: RecentActivity,
+    action: "APPROVE" | "REJECT",
+    amount?: number,
+  ) {
+    const response = await authFetch(`/api/bongmeister/${activity.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action,
+        ...(amount !== undefined ? { amount } : {}),
+      }),
+    });
+
+    if (!response.ok) {
+      const body = (await response.json().catch(() => null)) as {
+        message?: string;
+      } | null;
+      window.alert(body?.message ?? "Kunde inte hantera bongen.");
+      return;
+    }
+
+    const updated = (await response.json()) as RecentActivity;
+    setActivities((current) =>
+      current.map((item) =>
+        item.id === activity.id
+          ? {
+              ...item,
+              amount: updated.amount,
+              reason: updated.reason,
+              status: updated.status,
+            }
+          : item,
+      ),
+    );
+  }
+
+  function editAndApprove(activity: RecentActivity) {
+    const amountText = window.prompt("Antal", String(activity.amount));
+    if (amountText === null) return;
+
+    const amount = Number(amountText);
+    if (!Number.isInteger(amount) || amount < 1) {
+      window.alert("Antal måste vara ett heltal på minst 1.");
+      return;
+    }
+
+    void moderateActivity(activity, "APPROVE", amount);
   }
 
   async function handleAddShot() {
@@ -453,16 +530,47 @@ function AddShot() {
                 key={activity.id}
                 className="rounded-2xl bg-slate-700/70 p-5 transition hover:bg-slate-700"
               >
-                <p className="text-lg">
-                  <span className="font-semibold">{activity.fromName}</span>
-                  {" gav "}
-                  <span className="font-semibold">{activity.toName}</span>
-                  {` ${activity.amount} ${activity.amount === 1 ? "bong" : "bongar"}`}
-                </p>
+                <div className="flex items-start justify-between gap-4">
+                  <p className="text-lg">
+                    <span className="font-semibold">{activity.fromName}</span>
+                    {" gav "}
+                    <span className="font-semibold">{activity.toName}</span>
+                    {` ${activity.amount} ${activity.amount === 1 ? "bong" : "bongar"}`}
+                  </p>
+                  <span className="font-semibold text-slate-300">
+                    {activityStatus(activity)}
+                  </span>
+                </div>
                 {activity.reason && (
                   <p className="mt-1 text-sm text-slate-400">
                     {activity.reason}
                   </p>
+                )}
+
+                {isBongmeister && activity.status === "PENDING" && (
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => void moderateActivity(activity, "APPROVE")}
+                      className="rounded-lg bg-green-700 px-4 py-2 font-semibold hover:bg-green-600"
+                    >
+                      Godkänn
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => editAndApprove(activity)}
+                      className="rounded-lg bg-blue-700 px-4 py-2 font-semibold hover:bg-blue-600"
+                    >
+                      Ändra
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void moderateActivity(activity, "REJECT")}
+                      className="rounded-lg bg-red-700 px-4 py-2 font-semibold hover:bg-red-600"
+                    >
+                      Neka
+                    </button>
+                  </div>
                 )}
               </article>
             ))}

@@ -85,6 +85,8 @@ describe("AddShot", () => {
       toName: `Mottagare ${index + 1}`,
       amount: 1,
       reason: `Anledning ${index + 1}`,
+      status: "PENDING" as const,
+      acceptedByName: null,
       createdAt: new Date(2026, 0, index + 1).toISOString(),
     }));
 

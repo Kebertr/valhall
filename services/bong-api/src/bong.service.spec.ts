@@ -236,7 +236,7 @@ describe('BongService', () => {
           reason: 'Testing',
           createdAt,
           acceptedId: null,
-          status: 'PENDING',
+          status: approveStatus.PENDING,
         },
       ]);
 
@@ -271,9 +271,46 @@ describe('BongService', () => {
           toName: 'Erik',
           amount: 2,
           reason: 'Testing',
+          status: approveStatus.PENDING,
+          acceptedByName: null,
           createdAt,
         },
       ]);
+    });
+
+    it('resolves the reviewer name from acceptedId', async () => {
+      prisma.add.findMany.mockResolvedValueOnce([
+        {
+          id: 'shot-1',
+          fromId: 'member-1',
+          toId: 'member-2',
+          acceptedId: 'reviewer-1',
+          amount: 2,
+          reason: 'Testing',
+          status: approveStatus.APPROVED,
+          createdAt: new Date(),
+        },
+      ]);
+      memberGrpcService.resolveMemberNames.mockReturnValueOnce(
+        of({
+          members: [
+            { id: 'member-1', name: 'Anna' },
+            { id: 'member-2', name: 'Erik' },
+            { id: 'reviewer-1', name: 'Stina' },
+          ],
+        }),
+      );
+
+      const result = await service.recentActivity('Bearer signed-token');
+
+      expect(memberGrpcService.resolveMemberNames).toHaveBeenCalledWith(
+        { ids: ['member-1', 'member-2', 'reviewer-1'] },
+        expect.any(Metadata),
+      );
+      expect(result[0]).toMatchObject({
+        status: approveStatus.APPROVED,
+        acceptedByName: 'Stina',
+      });
     });
 
     it('loads the next three records using skip', async () => {

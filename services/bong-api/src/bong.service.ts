@@ -82,8 +82,10 @@ export class BongService implements OnModuleInit {
         id: true,
         fromId: true,
         toId: true,
+        acceptedId: true,
         amount: true,
         reason: true,
+        status: true,
         createdAt: true,
       },
     });
@@ -96,6 +98,9 @@ export class BongService implements OnModuleInit {
     for (const shot of shots) {
       if (!memberIds.includes(shot.fromId)) memberIds.push(shot.fromId);
       if (!memberIds.includes(shot.toId)) memberIds.push(shot.toId);
+      if (shot.acceptedId && !memberIds.includes(shot.acceptedId)) {
+        memberIds.push(shot.acceptedId);
+      }
     }
 
     const members = await this.resolveMemberNames(memberIds, authorization);
@@ -103,6 +108,7 @@ export class BongService implements OnModuleInit {
     return shots.map((shot) => {
       const sender = members.find((member) => member.id === shot.fromId);
       const receiver = members.find((member) => member.id === shot.toId);
+      const reviewer = members.find((member) => member.id === shot.acceptedId);
 
       return {
         id: shot.id,
@@ -110,6 +116,8 @@ export class BongService implements OnModuleInit {
         toName: receiver?.name ?? 'Okänd medlem',
         amount: shot.amount,
         reason: shot.reason,
+        status: shot.status,
+        acceptedByName: reviewer?.name ?? null,
         createdAt: shot.createdAt,
       };
     });

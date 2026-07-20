@@ -8,6 +8,8 @@ import { PrismaService } from './prisma.service';
 import { RedemptionService } from './redemption.service';
 import { RedemptionController } from './redemption.controller';
 import { AuthModule } from '@valhall/auth';
+import { BongmeisterController } from './bongmeister.controller';
+import { BongmeisterService } from './bongmeister.service';
 
 @Module({
   imports: [
@@ -29,7 +31,12 @@ import { AuthModule } from '@valhall/auth';
       },
     ]),
   ],
-  controllers: [BongController, RedemptionController],
-  providers: [BongService, PrismaService, RedemptionService],
+  controllers: [BongController, RedemptionController, BongmeisterController],
+  providers: [
+    BongService,
+    PrismaService,
+    RedemptionService,
+    BongmeisterService,
+  ],
 })
 export class BongModule {}
