@@ -74,24 +74,24 @@ function Redeem() {
 
         <nav className="flex flex-col p-4">
           <button onClick={() => navigate("/")} className="rounded-xl p-3 text-left hover:bg-slate-700">
-            Home
+            Hem
           </button>
           <button onClick={() => navigate("/add")} className="rounded-xl p-3 text-left hover:bg-slate-700">
-            Add Shot
+            Ge bong
           </button>
           <button onClick={() => navigate("/leaderboard")} className="rounded-xl p-3 text-left hover:bg-slate-700">
-            Leaderboard
+            Topplista
           </button>
           <button onClick={() => navigate("/gudar")} className="rounded-xl p-3 text-left hover:bg-slate-700">
             Gudar
           </button>
           <button onClick={() => navigate("/notifications")} className="rounded-xl p-3 text-left hover:bg-slate-700">
-            Notifications
+            Notiser
           </button>
 
           <div className="mt-8 border-t border-slate-700 pt-4">
             <button onClick={() => navigate("/profile")} className="w-full rounded-xl p-3 text-left hover:bg-slate-700">
-              Edit Profile
+              Redigera profil
             </button>
             <LogoutButton className="w-full rounded-xl p-3 text-left hover:bg-slate-700" />
           </div>
@@ -170,7 +170,7 @@ function Redeem() {
           aria-label="Add shot from footer"
           className="w-full rounded-2xl bg-blue-600 py-4 text-lg font-bold text-white transition hover:bg-blue-700"
         >
-          Add Shot
+          Ge bong
         </button>
       </div>
     </div>

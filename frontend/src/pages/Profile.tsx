@@ -29,12 +29,12 @@ function Profile() {
         </div>
 
         <nav className="flex flex-col p-4">
-          <button onClick={() => navigate("/")} className="rounded-xl p-3 text-left hover:bg-slate-700">Home</button>
-          <button onClick={() => navigate("/add")} className="rounded-xl p-3 text-left hover:bg-slate-700">Add Shot</button>
-          <button onClick={() => navigate("/redeem")} className="rounded-xl p-3 text-left hover:bg-slate-700">Redeem Shot</button>
-          <button onClick={() => navigate("/leaderboard")} className="rounded-xl p-3 text-left hover:bg-slate-700">Leaderboard</button>
+          <button onClick={() => navigate("/")} className="rounded-xl p-3 text-left hover:bg-slate-700">Hem</button>
+          <button onClick={() => navigate("/add")} className="rounded-xl p-3 text-left hover:bg-slate-700">Ge bong</button>
+          <button onClick={() => navigate("/redeem")} className="rounded-xl p-3 text-left hover:bg-slate-700">Lös in bong</button>
+          <button onClick={() => navigate("/leaderboard")} className="rounded-xl p-3 text-left hover:bg-slate-700">Topplista</button>
           <button onClick={() => navigate("/gudar")} className="rounded-xl p-3 text-left hover:bg-slate-700">Gudar</button>
-          <button onClick={() => navigate("/notifications")} className="rounded-xl p-3 text-left hover:bg-slate-700">Notifications</button>
+          <button onClick={() => navigate("/notifications")} className="rounded-xl p-3 text-left hover:bg-slate-700">Notiser</button>
 
           <div className="mt-8 border-t border-slate-700 pt-4">
             <LogoutButton className="w-full rounded-xl p-3 text-left hover:bg-slate-700" />

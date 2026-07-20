@@ -21,8 +21,9 @@ type RecentActivity = {
   createdAt: string;
 };
 
-async function getRecentActivity() {
-  const response = await authFetch("/api/add/recent");
+async function getRecentActivity(skip = 0) {
+  const url = skip > 0 ? `/api/add/recent?skip=${skip}` : "/api/add/recent";
+  const response = await authFetch(url);
 
   if (!response.ok) {
     throw new Error("Failed to fetch recent activity");
@@ -43,6 +44,7 @@ function AddShot() {
   const [submitMessage, setSubmitMessage] = useState<string | null>(null);
   const [activities, setActivities] = useState<RecentActivity[]>([]);
   const [activityError, setActivityError] = useState<string | null>(null);
+  const [isLoadingMoreActivities, setIsLoadingMoreActivities] = useState(false);
   const navigate = useNavigate();
 
   const fetchRecentActivity = useCallback(async () => {
@@ -134,6 +136,28 @@ function AddShot() {
       .slice(0, 8);
   }, [memberQuery, members, selectedMember]);
 
+  async function handleLoadMoreActivities() {
+    if (isLoadingMoreActivities) return;
+
+    try {
+      setIsLoadingMoreActivities(true);
+      const nextActivities = await getRecentActivity(activities.length);
+      setActivities((current) => [...current, ...nextActivities]);
+
+      if (nextActivities.length === 0) {
+        window.alert("Det finns inga fler aktiviteter.");
+      }
+    } catch (error) {
+      setActivityError(
+        error instanceof Error
+          ? error.message
+          : "Kunde inte hämta fler aktiviteter",
+      );
+    } finally {
+      setIsLoadingMoreActivities(false);
+    }
+  }
+
   async function handleAddShot() {
     if (!selectedMember || amount < 1) {
       setSubmitMessage("Choose a member from the suggestions and an amount.");
@@ -141,42 +165,42 @@ function AddShot() {
     }
 
     try {
-        setSubmitMessage(null);
+      setSubmitMessage(null);
 
-        const response = await authFetch(`/api/add`, {
+      const response = await authFetch(`/api/add`, {
         method: "POST",
         headers: {
-            "Content-Type": "application/json",
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
-            Id: selectedMember.id,
-            amount: amount,
-            reason: reason,
+          Id: selectedMember.id,
+          amount: amount,
+          reason: reason,
         }),
-        });
+      });
 
-        if (!response.ok) {
+      if (!response.ok) {
         const body = (await response.json().catch(() => null)) as {
           message?: string;
         } | null;
 
         throw new Error(body?.message ?? "Failed to add shot");
-        }
+      }
 
-        await response.json();
+      await response.json();
 
-        setSelectedMember(null);
-        setMemberQuery("");
-        setAmount(1);
-        setReason("");
-        setSubmitMessage("Shot added.");
-        void fetchRecentActivity();
+      setSelectedMember(null);
+      setMemberQuery("");
+      setAmount(1);
+      setReason("");
+      setSubmitMessage("Shot added.");
+      void fetchRecentActivity();
     } catch (error) {
-        setSubmitMessage(
-          error instanceof Error ? error.message : "Could not add shot",
-        );
+      setSubmitMessage(
+        error instanceof Error ? error.message : "Could not add shot",
+      );
     }
-    }
+  }
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white pb-24">
       {/* Overlay */}
@@ -207,29 +231,47 @@ function AddShot() {
         </div>
 
         <nav className="flex flex-col p-4">
-          <button onClick={() => navigate("/")} className="rounded-xl p-3 text-left hover:bg-slate-700">
-            Home
+          <button
+            onClick={() => navigate("/")}
+            className="rounded-xl p-3 text-left hover:bg-slate-700"
+          >
+            Hem
           </button>
 
-          <button onClick={() => navigate("/redeem")} className="rounded-xl p-3 text-left hover:bg-slate-700">
-            Redeem Shot
+          <button
+            onClick={() => navigate("/redeem")}
+            className="rounded-xl p-3 text-left hover:bg-slate-700"
+          >
+            Lös in bong
           </button>
 
-          <button onClick={() => navigate("/leaderboard")} className="rounded-xl p-3 text-left hover:bg-slate-700">
-            Leaderboard
+          <button
+            onClick={() => navigate("/leaderboard")}
+            className="rounded-xl p-3 text-left hover:bg-slate-700"
+          >
+            Topplista
           </button>
 
-          <button onClick={() => navigate("/gudar")} className="rounded-xl p-3 text-left hover:bg-slate-700">
+          <button
+            onClick={() => navigate("/gudar")}
+            className="rounded-xl p-3 text-left hover:bg-slate-700"
+          >
             Gudar
           </button>
 
-          <button onClick={() => navigate("/notifications")} className="rounded-xl p-3 text-left hover:bg-slate-700">
-            Notifications
+          <button
+            onClick={() => navigate("/notifications")}
+            className="rounded-xl p-3 text-left hover:bg-slate-700"
+          >
+            Notiser
           </button>
 
           <div className="mt-8 border-t border-slate-700 pt-4">
-            <button onClick={() => navigate("/profile")} className="w-full rounded-xl p-3 text-left hover:bg-slate-700">
-              Edit Profile
+            <button
+              onClick={() => navigate("/profile")}
+              className="w-full rounded-xl p-3 text-left hover:bg-slate-700"
+            >
+              Redigera profil
             </button>
 
             <LogoutButton className="w-full rounded-xl p-3 text-left hover:bg-slate-700" />
@@ -264,93 +306,104 @@ function AddShot() {
       {/* Main */}
       <main className="px-4 pt-16">
         <div className="rounded-3xl border border-blue-900/30 bg-slate-800/90 p-5 shadow-2xl">
-          <h2 className="mb-6 text-3xl font-bold text-blue-400">
-            Add Shot
-          </h2>
+          <h2 className="mb-6 text-3xl font-bold text-blue-400">Ge bong</h2>
 
           {/* Member */}
 
-        <div className="relative mb-5">
-        <label className="mb-2 block text-lg font-semibold">
-            Member
-        </label>
+          <div className="relative mb-5">
+            <label className="mb-2 block text-lg font-semibold">Medlem</label>
 
-        <input
-            type="text"
-            value={memberQuery}
-            placeholder={isLoadingMembers ? "Loading members..." : "Search by name..."}
-            disabled={isLoadingMembers || Boolean(membersError)}
-            autoComplete="off"
-            onChange={(e) => {
-              setMemberQuery(e.target.value);
-              setSelectedMember(null);
-              setSubmitMessage(null);
-            }}
-            className="w-full rounded-xl bg-slate-700 p-4 text-white disabled:opacity-60"
-          />
+            <input
+              type="text"
+              value={memberQuery}
+              placeholder={
+                isLoadingMembers ? "Laddar medlemmar..." : "Sök efter namn..."
+              }
+              disabled={isLoadingMembers || Boolean(membersError)}
+              autoComplete="off"
+              onChange={(e) => {
+                setMemberQuery(e.target.value);
+                setSelectedMember(null);
+                setSubmitMessage(null);
+              }}
+              className="w-full rounded-xl bg-slate-700 p-4 text-white disabled:opacity-60"
+            />
 
-          {membersError && (
-            <p className="mt-2 text-sm text-red-300">{membersError}</p>
-          )}
+            {membersError && (
+              <p className="mt-2 text-sm text-red-300">{membersError}</p>
+            )}
 
-          {matchingMembers.length > 0 && (
-            <ul className="absolute z-20 mt-2 max-h-72 w-full overflow-y-auto rounded-xl border border-slate-600 bg-slate-800 shadow-2xl">
-              {matchingMembers.map((member) => (
-                <li key={member.id}>
-                  <button
-                    type="button"
-                    aria-label={`${member.godname}, ${member.name}`}
-                    onClick={() => {
-                      setSelectedMember(member);
-                      setMemberQuery(`${member.godname} (${member.name})`);
-                    }}
-                    className="flex w-full items-center gap-3 border-b border-slate-700 p-3 text-left last:border-0 hover:bg-slate-700"
-                  >
-                    {member.avatarUrl ? (
-                      <img
-                        src={member.avatarUrl}
-                        alt=""
-                        className="h-10 w-10 rounded-full object-cover"
-                      />
-                    ) : (
-                      <span className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-600 font-bold">
-                        {member.godname.charAt(0)}
+            {matchingMembers.length > 0 && (
+              <ul className="absolute z-20 mt-2 max-h-72 w-full overflow-y-auto rounded-xl border border-slate-600 bg-slate-800 shadow-2xl">
+                {matchingMembers.map((member) => (
+                  <li key={member.id}>
+                    <button
+                      type="button"
+                      aria-label={`${member.godname}, ${member.name}`}
+                      onClick={() => {
+                        setSelectedMember(member);
+                        setMemberQuery(`${member.godname} (${member.name})`);
+                      }}
+                      className="flex w-full items-center gap-3 border-b border-slate-700 p-3 text-left last:border-0 hover:bg-slate-700"
+                    >
+                      {member.avatarUrl ? (
+                        <img
+                          src={member.avatarUrl}
+                          alt=""
+                          className="h-10 w-10 rounded-full object-cover"
+                        />
+                      ) : (
+                        <span className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-600 font-bold">
+                          {member.godname.charAt(0)}
+                        </span>
+                      )}
+                      <span>
+                        <span className="block font-semibold">
+                          {member.godname}
+                        </span>
+                        <span className="block text-sm text-slate-400">
+                          {member.name}
+                        </span>
                       </span>
-                    )}
-                    <span>
-                      <span className="block font-semibold">{member.godname}</span>
-                      <span className="block text-sm text-slate-400">{member.name}</span>
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
 
-          {memberQuery.trim() && !selectedMember && !isLoadingMembers && !membersError && matchingMembers.length === 0 && (
-            <p className="mt-2 text-sm text-slate-400">No matching members.</p>
-          )}
-        </div>
+            {memberQuery.trim() &&
+              !selectedMember &&
+              !isLoadingMembers &&
+              !membersError &&
+              matchingMembers.length === 0 && (
+                <p className="mt-2 text-sm text-slate-400">
+                  Inga matchande medlemmar.
+                </p>
+              )}
+          </div>
 
-        
-        {/* Amount */} 
-        <div className="mb-5"> 
-            <label className="mb-2 block text-lg font-semibold"> 
-                Amount 
-            </label> 
-            <input  type="number" min="1" enterKeyHint="done" value={amount} onChange={(e) => setAmount(Number(e.target.value))} className=" w-full rounded-xl bg-slate-700 p-4 text-white text-lg " /> 
-        </div>
-
+          {/* Amount */}
+          <div className="mb-5">
+            <label className="mb-2 block text-lg font-semibold">Antal</label>
+            <input
+              type="number"
+              min="1"
+              enterKeyHint="done"
+              value={amount}
+              onChange={(e) => setAmount(Number(e.target.value))}
+              className=" w-full rounded-xl bg-slate-700 p-4 text-white text-lg "
+            />
+          </div>
 
           {/* Reason */}
           <div className="mb-5">
             <label className="mb-2 block text-lg font-semibold">
-              Reason
+              Anledning
             </label>
 
             <textarea
               value={reason}
-              placeholder="Reason..."
+              placeholder="Anledning..."
               onChange={(e) => setReason(e.target.value)}
               className="min-h-[120px] w-full rounded-xl bg-slate-700 p-4 text-white"
             />
@@ -362,7 +415,8 @@ function AddShot() {
             </p>
           )}
 
-          <button onClick={handleAddShot}
+          <button
+            onClick={handleAddShot}
             disabled={!selectedMember || amount < 1}
             className="
               w-full
@@ -378,7 +432,7 @@ function AddShot() {
               disabled:opacity-60
             "
           >
-            Add Shot
+            Ge bong
           </button>
         </div>
 
@@ -387,9 +441,7 @@ function AddShot() {
             Senaste aktivitet
           </h2>
 
-          {activityError && (
-            <p className="text-red-300">{activityError}</p>
-          )}
+          {activityError && <p className="text-red-300">{activityError}</p>}
 
           {!activityError && activities.length === 0 && (
             <p className="text-slate-400">Inga bongar har delats ut ännu.</p>
@@ -415,6 +467,15 @@ function AddShot() {
               </article>
             ))}
           </div>
+
+          <button
+            type="button"
+            onClick={handleLoadMoreActivities}
+            disabled={isLoadingMoreActivities}
+            className="mt-5 w-full rounded-xl bg-slate-700 px-4 py-3 font-semibold transition hover:bg-slate-600"
+          >
+            {isLoadingMoreActivities ? "Laddar..." : "Visa fler"}
+          </button>
         </section>
       </main>
 
@@ -432,7 +493,8 @@ function AddShot() {
           backdrop-blur
         "
       >
-        <button onClick={() => navigate("/redeem")}
+        <button
+          onClick={() => navigate("/redeem")}
           className="
             w-full
             rounded-2xl
@@ -445,7 +507,7 @@ function AddShot() {
             hover:bg-red-800
           "
         >
-          Redeem Shot
+          Lös in bong
         </button>
       </div>
     </div>

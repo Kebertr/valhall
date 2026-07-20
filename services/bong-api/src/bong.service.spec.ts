@@ -1,103 +1,471 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { mockDeep, DeepMockProxy } from 'jest-mock-extended';
+import { HttpException } from '@nestjs/common';
+import { Test, type TestingModule } from '@nestjs/testing';
+import { Metadata } from '@grpc/grpc-js';
+import { mockDeep, type DeepMockProxy } from 'jest-mock-extended';
+import { of, throwError } from 'rxjs';
 import { BongService } from './bong.service';
 import { PrismaService } from './prisma.service';
-import { ConfigService } from '@nestjs/config';
+import { approveStatus } from './generated/prisma/client';
 
-//Mock Prisma
-jest.mock('./prisma.service', () => ({
-  PrismaService: jest.fn(),
-}));
-
-//Creates a bongservice with the mock prisma
 describe('BongService', () => {
   let service: BongService;
   let prisma: DeepMockProxy<PrismaService>;
 
+  const memberGrpcService = {
+    resolveShotParticipants: jest.fn(),
+    resolveMemberNames: jest.fn(),
+  };
+
+  const grpcClient = {
+    getService: jest.fn(() => memberGrpcService),
+  };
+
   beforeEach(async () => {
+    jest.clearAllMocks();
+
+    prisma = mockDeep<PrismaService>();
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         BongService,
-        PrismaService,
         {
-          provide: ConfigService,
-          useValue: {
-            get: jest.fn().mockReturnValue('http://member-api:3002'),
-          },
+          provide: PrismaService,
+          useValue: prisma,
+        },
+        {
+          provide: 'MEMBER_PACKAGE',
+          useValue: grpcClient,
         },
       ],
-    })
-      .overrideProvider(PrismaService)
-      .useValue(mockDeep<PrismaService>())
-      .compile();
+    }).compile();
 
     service = module.get(BongService);
-    prisma = module.get(PrismaService);
+
+    service.onModuleInit();
   });
 
-  it('add a bong', async () => {
-    //Mocking body sent from frontend
-    const body = {
-      Id: '550e8400-e29b-41d4-a716-446655440000',
-      amount: 5,
-      reason: 'testing',
-    };
-    const authorization = 'Bearer signed-token';
-    const participants = {
-      fromId: 'sender-member-uuid',
-      toId: 'target-member-uuid',
-    };
+  describe('addShot', () => {
+    it('adds a shot using participants returned by member-api', async () => {
+      const body = {
+        Id: 'target-member-uuid',
+        amount: 5,
+        reason: 'Testing',
+      };
 
-    jest.spyOn(global, 'fetch').mockResolvedValueOnce({
-      ok: true,
-      json: () => Promise.resolve(participants),
-    } as Response);
+      const authorization = 'Bearer signed-token';
 
-    //Answer from prisma and db in the test
-    prisma.add.create.mockResolvedValueOnce({
-      id: 'shot-1',
-      fromId: participants.fromId,
-      toId: participants.toId,
-      amount: body.amount,
-      reason: body.reason,
-      status: 'pending',
-      createdAt: new Date('2026-06-18T00:00:00.000Z'),
+      memberGrpcService.resolveShotParticipants.mockReturnValueOnce(
+        of({
+          fromId: 'sender-member-uuid',
+          toId: 'target-member-uuid',
+        }),
+      );
+
+      prisma.add.create.mockResolvedValueOnce({
+        id: 'shot-1',
+        fromId: 'sender-member-uuid',
+        toId: 'target-member-uuid',
+        acceptedId: null,
+        amount: 5,
+        reason: 'Testing',
+        status: approveStatus.PENDING,
+        createdAt: new Date(),
+      });
+
+      const result = await service.addShot(body, authorization);
+
+      expect(memberGrpcService.resolveShotParticipants).toHaveBeenCalledWith(
+        {
+          targetMemberRecordId: 'target-member-uuid',
+        },
+        expect.any(Metadata),
+      );
+
+      expect(prisma.add.create).toHaveBeenCalledWith({
+        data: {
+          fromId: 'sender-member-uuid',
+          toId: 'target-member-uuid',
+          amount: 5,
+          reason: 'Testing',
+        },
+      });
+
+      expect(result).toMatchObject({
+        ok: true,
+        message: 'Added target-member-uuid',
+        received: {
+          Id: 'target-member-uuid',
+          amount: 5,
+          reason: 'Testing',
+          status: 'pending',
+        },
+      });
     });
 
-    const result = await service.addShot(body, authorization);
+    it('forwards the JWT through gRPC metadata', async () => {
+      const authorization = 'Bearer signed-token';
 
-    expect(fetch).toHaveBeenCalledWith(
-      'http://member-api:3002/api/members/shot-participants',
-      {
-        method: 'POST',
-        headers: {
-          Authorization: authorization,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          targetMemberRecordId: '550e8400-e29b-41d4-a716-446655440000',
+      memberGrpcService.resolveShotParticipants.mockReturnValueOnce(
+        of({
+          fromId: 'sender-member-uuid',
+          toId: 'target-member-uuid',
         }),
+      );
+
+      prisma.add.create.mockResolvedValueOnce({
+        id: 'shot-1',
+        fromId: 'sender-member-uuid',
+        toId: 'target-member-uuid',
+        acceptedId: null,
+        amount: 1,
+        reason: 'Testing metadata',
+        status: approveStatus.PENDING,
+        createdAt: new Date(),
+      });
+
+      await service.addShot(
+        {
+          Id: 'target-member-uuid',
+          amount: 1,
+          reason: 'Testing metadata',
+        },
+        authorization,
+      );
+
+      const grpcCall = memberGrpcService.resolveShotParticipants.mock.calls[0];
+
+      const metadata = grpcCall[1] as Metadata;
+
+      expect(metadata.get('authorization')).toEqual([authorization]);
+    });
+
+    it.each([
+      {
+        grpcCode: 3,
+        details: 'Only GUD members can receive shots',
+        expectedHttpStatus: 400,
+      },
+      {
+        grpcCode: 5,
+        details: 'Member not found',
+        expectedHttpStatus: 404,
+      },
+      {
+        grpcCode: 7,
+        details: 'Connect your member account first',
+        expectedHttpStatus: 403,
+      },
+      {
+        grpcCode: 16,
+        details: 'Unauthenticated',
+        expectedHttpStatus: 401,
+      },
+      {
+        grpcCode: 13,
+        details: 'Unexpected member service failure',
+        expectedHttpStatus: 500,
+      },
+    ])(
+      'maps gRPC code $grpcCode to HTTP $expectedHttpStatus without writing to the database',
+      async ({ grpcCode, details, expectedHttpStatus }) => {
+        memberGrpcService.resolveShotParticipants.mockReturnValueOnce(
+          throwError(() => ({
+            code: grpcCode,
+            details,
+          })),
+        );
+
+        let thrown: unknown;
+
+        try {
+          await service.addShot(
+            {
+              Id: 'invalid-target',
+              amount: 5,
+              reason: 'Testing',
+            },
+            'Bearer signed-token',
+          );
+        } catch (error) {
+          thrown = error;
+        }
+
+        expect(thrown).toBeInstanceOf(HttpException);
+        expect(thrown).toMatchObject({
+          status: expectedHttpStatus,
+          response: details,
+        });
+        expect(prisma.add.create).not.toHaveBeenCalled();
       },
     );
 
-    //Cehck so it is right
-    // eslint-disable-next-line @typescript-eslint/unbound-method
-    expect(prisma.add.create).toHaveBeenCalledWith({
-      data: {
-        toId: participants.toId,
-        amount: body.amount,
-        reason: body.reason,
-        fromId: participants.fromId,
-      },
+    it('propagates a database failure when creating a shot', async () => {
+      memberGrpcService.resolveShotParticipants.mockReturnValueOnce(
+        of({
+          fromId: 'sender-id',
+          toId: 'target-id',
+        }),
+      );
+
+      const databaseError = new Error('Database unavailable');
+      prisma.add.create.mockRejectedValueOnce(databaseError);
+
+      await expect(
+        service.addShot(
+          {
+            Id: 'target-id',
+            amount: 5,
+            reason: 'Testing',
+          },
+          'Bearer signed-token',
+        ),
+      ).rejects.toBe(databaseError);
+    });
+  });
+
+  describe('recentActivity', () => {
+    it('resolves member names through gRPC', async () => {
+      const createdAt = new Date('2026-07-19T10:00:00.000Z');
+
+      prisma.add.findMany.mockResolvedValueOnce([
+        {
+          id: 'shot-1',
+          fromId: 'member-1',
+          toId: 'member-2',
+          amount: 2,
+          reason: 'Testing',
+          createdAt,
+          acceptedId: null,
+          status: 'PENDING',
+        },
+      ]);
+
+      memberGrpcService.resolveMemberNames.mockReturnValueOnce(
+        of({
+          members: [
+            {
+              id: 'member-1',
+              name: 'Anna',
+            },
+            {
+              id: 'member-2',
+              name: 'Erik',
+            },
+          ],
+        }),
+      );
+
+      const result = await service.recentActivity('Bearer signed-token');
+
+      expect(memberGrpcService.resolveMemberNames).toHaveBeenCalledWith(
+        {
+          ids: ['member-1', 'member-2'],
+        },
+        expect.any(Metadata),
+      );
+
+      expect(result).toEqual([
+        {
+          id: 'shot-1',
+          fromName: 'Anna',
+          toName: 'Erik',
+          amount: 2,
+          reason: 'Testing',
+          createdAt,
+        },
+      ]);
     });
 
-    expect(result.ok).toBe(true);
-    expect(result.message).toBe('Added 550e8400-e29b-41d4-a716-446655440000');
-    expect(result.received).toMatchObject({
-      Id: body.Id,
-      amount: body.amount,
-      reason: body.reason,
-      status: 'pending',
+    it('loads the next three records using skip', async () => {
+      const shots = Array.from({ length: 3 }, (_, index) => ({
+        id: `shot-${index + 1}`,
+        fromId: 'member-1',
+        toId: 'member-2',
+        amount: 1,
+        reason: `Reason ${index + 1}`,
+        createdAt: new Date(2026, 6, 20, 12, 0, -index),
+        acceptedId: null,
+        status: approveStatus.PENDING,
+      }));
+      prisma.add.findMany.mockResolvedValueOnce(shots);
+      memberGrpcService.resolveMemberNames.mockReturnValueOnce(
+        of({
+          members: [
+            { id: 'member-1', name: 'Anna' },
+            { id: 'member-2', name: 'Erik' },
+          ],
+        }),
+      );
+
+      const result = await service.recentActivity('Bearer signed-token', 3);
+
+      expect(prisma.add.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          skip: 3,
+          take: 3,
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        }),
+      );
+      expect(result).toHaveLength(3);
+    });
+
+    it('forwards the JWT when resolving member names', async () => {
+      prisma.add.findMany.mockResolvedValueOnce([
+        {
+          id: 'shot-1',
+          fromId: 'member-1',
+          toId: 'member-2',
+          amount: 2,
+          reason: 'Testing metadata',
+          createdAt: new Date(),
+          acceptedId: null,
+          status: approveStatus.PENDING,
+        },
+      ]);
+
+      memberGrpcService.resolveMemberNames.mockReturnValueOnce(
+        of({
+          members: [
+            { id: 'member-1', name: 'Anna' },
+            { id: 'member-2', name: 'Erik' },
+          ],
+        }),
+      );
+
+      const authorization = 'Bearer signed-token';
+      await service.recentActivity(authorization);
+
+      const metadata = memberGrpcService.resolveMemberNames.mock
+        .calls[0][1] as Metadata;
+      expect(metadata.get('authorization')).toEqual([authorization]);
+    });
+
+    it('does not call member-api when there is no recent activity', async () => {
+      prisma.add.findMany.mockResolvedValueOnce([]);
+
+      const result = await service.recentActivity('Bearer signed-token');
+
+      expect(result).toEqual([]);
+
+      expect(memberGrpcService.resolveMemberNames).not.toHaveBeenCalled();
+    });
+    it.each([
+      { grpcCode: 3, expectedHttpStatus: 400 },
+      { grpcCode: 5, expectedHttpStatus: 404 },
+      { grpcCode: 7, expectedHttpStatus: 403 },
+      { grpcCode: 16, expectedHttpStatus: 401 },
+      { grpcCode: 13, expectedHttpStatus: 500 },
+    ])(
+      'maps member-name gRPC code $grpcCode to HTTP $expectedHttpStatus without exposing downstream details',
+      async ({ grpcCode, expectedHttpStatus }) => {
+        prisma.add.findMany.mockResolvedValueOnce([
+          {
+            id: 'shot-1',
+            fromId: 'member-1',
+            toId: 'member-2',
+            amount: 2,
+            reason: 'Testing',
+            createdAt: new Date(),
+            acceptedId: null,
+            status: approveStatus.PENDING,
+          },
+        ]);
+
+        memberGrpcService.resolveMemberNames.mockReturnValueOnce(
+          throwError(() => ({
+            code: grpcCode,
+            details: 'Sensitive downstream details',
+          })),
+        );
+
+        // recentActivity intentionally exposes one stable message to HTTP callers.
+        await expect(
+          service.recentActivity('Bearer signed-token'),
+        ).rejects.toMatchObject({
+          status: expectedHttpStatus,
+          response: 'Could not load recent activity',
+        });
+      },
+    );
+
+    it('deduplicates member IDs before resolving names', async () => {
+      const createdAt = new Date();
+
+      prisma.add.findMany.mockResolvedValueOnce([
+        {
+          id: 'shot-1',
+          fromId: 'member-1',
+          toId: 'member-2',
+          amount: 1,
+          reason: 'First',
+          createdAt,
+          acceptedId: null,
+          status: approveStatus.PENDING,
+        },
+        {
+          id: 'shot-2',
+          fromId: 'member-2',
+          toId: 'member-1',
+          amount: 2,
+          reason: 'Second',
+          createdAt,
+          acceptedId: null,
+          status: approveStatus.PENDING,
+        },
+      ]);
+
+      memberGrpcService.resolveMemberNames.mockReturnValueOnce(
+        of({
+          members: [
+            { id: 'member-1', name: 'Anna' },
+            { id: 'member-2', name: 'Erik' },
+          ],
+        }),
+      );
+
+      await service.recentActivity('Bearer signed-token');
+
+      expect(memberGrpcService.resolveMemberNames).toHaveBeenCalledWith(
+        {
+          ids: ['member-1', 'member-2'],
+        },
+        expect.any(Metadata),
+      );
+    });
+
+    it('uses a fallback when a member name cannot be resolved', async () => {
+      const createdAt = new Date('2026-07-19T10:00:00.000Z');
+
+      prisma.add.findMany.mockResolvedValueOnce([
+        {
+          id: 'shot-1',
+          fromId: 'member-1',
+          toId: 'missing-member',
+          amount: 2,
+          reason: 'Testing',
+          createdAt,
+          acceptedId: null,
+          status: approveStatus.PENDING,
+        },
+      ]);
+
+      memberGrpcService.resolveMemberNames.mockReturnValueOnce(
+        of({
+          members: [
+            {
+              id: 'member-1',
+              name: 'Anna',
+            },
+          ],
+        }),
+      );
+
+      const result = await service.recentActivity('Bearer signed-token');
+
+      expect(result[0]).toMatchObject({
+        fromName: 'Anna',
+        toName: 'Okänd medlem',
+      });
     });
   });
 });

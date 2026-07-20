@@ -1,11 +1,8 @@
-import {
-  BadRequestException,
-  ForbiddenException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import type { AuthenticatedUser } from '@valhall/auth';
 import { PrismaService } from './prisma.service';
+import { RpcException } from '@nestjs/microservices';
+import { status as GrpcStatus } from '@grpc/grpc-js';
 
 @Injectable()
 export class MemberService {
@@ -50,13 +47,11 @@ export class MemberService {
     targetMemberRecordId: string,
     user: AuthenticatedUser,
   ) {
-    console.log(targetMemberRecordId, user.keycloakId);
-    const [sender, target] = await this.prisma.$transaction([
+    const [sender, target] = await Promise.all([
       this.prisma.member.findUnique({
         where: { keycloakId: user.keycloakId },
         select: { id: true },
       }),
-      
       this.prisma.member.findUnique({
         where: { id: targetMemberRecordId },
         select: { id: true, status: true },
@@ -64,15 +59,31 @@ export class MemberService {
     ]);
 
     if (!sender) {
-      throw new ForbiddenException('Connect your member account first');
+      throw new RpcException({
+        code: GrpcStatus.PERMISSION_DENIED, // 7
+        details: 'Connect your member account first',
+      });
     }
 
     if (!target) {
-      throw new NotFoundException('Member not found');
+      throw new RpcException({
+        code: GrpcStatus.NOT_FOUND, // 5
+        details: 'Member not found',
+      });
+    }
+
+    if (sender.id === target.id) {
+      throw new RpcException({
+        code: GrpcStatus.INVALID_ARGUMENT, // 3
+        details: 'You cannot give shots to yourself',
+      });
     }
 
     if (target.status !== 'GUD') {
-      throw new BadRequestException('Only GUD members can receive shots');
+      throw new RpcException({
+        code: GrpcStatus.INVALID_ARGUMENT, // 3
+        details: 'Only GUD members can receive shots',
+      });
     }
 
     return { fromId: sender.id, toId: target.id };

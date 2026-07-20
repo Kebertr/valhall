@@ -1,5 +1,6 @@
 // src/dto/create-shot.dto.ts
 import { ApiProperty } from '@nestjs/swagger';
+import { IsInt, Min } from 'class-validator';
 
 export class CreateShotDto {
   @ApiProperty({
@@ -9,7 +10,9 @@ export class CreateShotDto {
   })
   Id!: string;
 
-  @ApiProperty({ example: 2 })
+  @IsInt()
+  @Min(1)
+  @ApiProperty({ example: 2, minimum: 1 })
   amount!: number;
 
   @ApiProperty({ example: 'Kom sent' })

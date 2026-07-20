@@ -4,6 +4,7 @@ import {
   Get,
   Headers,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '@valhall/auth';
@@ -28,7 +29,10 @@ export class BongController {
 
   @Get('add/recent')
   @UseGuards(JwtAuthGuard)
-  recentActivity(@Headers('authorization') authorization: string) {
-    return this.bongService.recentActivity(authorization);
+  recentActivity(
+    @Headers('authorization') authorization: string,
+    @Query('skip') skip?: string,
+  ) {
+    return this.bongService.recentActivity(authorization, Number(skip ?? 0));
   }
 }
