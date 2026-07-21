@@ -5,6 +5,8 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import { mockDeep, type DeepMockProxy } from 'jest-mock-extended';
 import { MemberService } from './member.service';
 import { PrismaService } from './prisma.service';
+import { MemberStatus } from './generated/prisma/enums';
+import { ConflictException } from '@nestjs/common';
 
 jest.mock('./prisma.service', () => ({
   PrismaService: class PrismaService {},
@@ -34,6 +36,55 @@ describe('MemberService', () => {
     }).compile();
 
     service = module.get(MemberService);
+  });
+
+  describe('createMember', () => {
+    it('creates a member with an optional role', async () => {
+      prisma.member.create.mockResolvedValueOnce({
+        memberId: 42,
+        name: 'Stina Andersson',
+        godname: 'Freja',
+        role: 'Kassör',
+        avatarUrl: null,
+        status: MemberStatus.GUD,
+      });
+
+      await service.createMember({
+        name: 'Stina Andersson',
+        godname: 'Freja',
+        status: MemberStatus.GUD,
+        role: 'Kassör',
+      });
+
+      expect(prisma.member.create).toHaveBeenCalledWith({
+        data: {
+          name: 'Stina Andersson',
+          godname: 'Freja',
+          status: MemberStatus.GUD,
+          role: 'Kassör',
+        },
+        select: {
+          memberId: true,
+          name: true,
+          godname: true,
+          role: true,
+          avatarUrl: true,
+          status: true,
+        },
+      });
+    });
+
+    it('returns a conflict when the godname is already used', async () => {
+      prisma.member.create.mockRejectedValueOnce({ code: 'P2002' });
+
+      await expect(
+        service.createMember({
+          name: 'Another member',
+          godname: 'Freja',
+          status: MemberStatus.AS,
+        }),
+      ).rejects.toThrow(new ConflictException('Gudnamnet används redan'));
+    });
   });
 
   describe('findAll', () => {

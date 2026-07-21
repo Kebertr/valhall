@@ -23,7 +23,13 @@ function Gudar() {
   const [members, setMembers] = useState<Member[]>([]);
   const [isLoadingMembers, setIsLoadingMembers] = useState(true);
   const [membersError, setMembersError] = useState<string | null>(null);
+  const [name, setName] = useState("");
+  const [godname, setGodname] = useState("");
+  const [status, setStatus] = useState<MemberStatus>("VIKING");
+  const [role, setRole] = useState("");
+  const [createMessage, setCreateMessage] = useState<string | null>(null);
   const navigate = useNavigate();
+  const canCreateMembers = hasAnyRole(["ADMIN", "ORDFORANDE"]);
 
   useEffect(() => {
     let active = true;
@@ -63,6 +69,40 @@ function Gudar() {
       active = false;
     };
   }, []);
+
+  async function createMember(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setCreateMessage(null);
+
+    const response = await authFetch("/api/members/add-member", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: name.trim(),
+        godname: godname.trim(),
+        status,
+        ...(role.trim() ? { role: role.trim() } : {}),
+      }),
+    });
+    const body = (await response.json().catch(() => null)) as
+      Member | { message?: string } | null;
+
+    if (!response.ok) {
+      setCreateMessage(
+        body && "message" in body && body.message
+          ? body.message
+          : "Kunde inte lägga till medlemmen.",
+      );
+      return;
+    }
+
+    setMembers((current) => [...current, body as Member]);
+    setName("");
+    setGodname("");
+    setStatus("VIKING");
+    setRole("");
+    setCreateMessage("Medlemmen har lagts till.");
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 pb-16 text-white">
@@ -161,6 +201,72 @@ function Gudar() {
       </header>
 
       <main className="mx-auto max-w-6xl space-y-5 px-4 pt-12">
+        {canCreateMembers && (
+          <section className="rounded-3xl border border-blue-900/30 bg-slate-800/90 p-6 shadow-2xl">
+            <h2 className="mb-5 text-2xl font-bold text-blue-400">
+              Lägg till medlem
+            </h2>
+            <form
+              onSubmit={(event) => void createMember(event)}
+              className="grid gap-4 md:grid-cols-2"
+            >
+              <label className="font-semibold">
+                Namn
+                <input
+                  required
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  className="mt-2 w-full rounded-xl bg-slate-700 p-3 font-normal"
+                />
+              </label>
+              <label className="font-semibold">
+                Gudnamn
+                <input
+                  required
+                  value={godname}
+                  onChange={(event) => setGodname(event.target.value)}
+                  className="mt-2 w-full rounded-xl bg-slate-700 p-3 font-normal"
+                />
+              </label>
+              <label className="font-semibold">
+                Status
+                <select
+                  value={status}
+                  onChange={(event) =>
+                    setStatus(event.target.value as MemberStatus)
+                  }
+                  className="mt-2 w-full rounded-xl bg-slate-700 p-3 font-normal"
+                >
+                  {statuses.map((memberStatus) => (
+                    <option key={memberStatus} value={memberStatus}>
+                      {memberStatus}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="font-semibold">
+                Roll (valfri)
+                <input
+                  value={role}
+                  onChange={(event) => setRole(event.target.value)}
+                  className="mt-2 w-full rounded-xl bg-slate-700 p-3 font-normal"
+                />
+              </label>
+              <button
+                type="submit"
+                className="rounded-xl bg-blue-600 p-4 font-bold hover:bg-blue-500 md:col-span-2"
+              >
+                Lägg till medlem
+              </button>
+            </form>
+            {createMessage && (
+              <p className="mt-4" role="status">
+                {createMessage}
+              </p>
+            )}
+          </section>
+        )}
+
         {isLoadingMembers && (
           <div className="rounded-3xl border border-blue-900/30 bg-slate-800/90 p-4 shadow-2xl">
             Loading members...

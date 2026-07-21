@@ -21,6 +21,7 @@ import { ResolveShotParticipantsDto } from './dto/resolve-shot-participants.dto'
 import { ResolveMemberNamesDto } from './dto/resolve-member-names.dto';
 import { MemberLinkService } from './member-link.service';
 import { MemberService } from './member.service';
+import { CreateMemberDto } from './dto/create-member.dto';
 
 @Controller('members')
 @ApiTags('Members')
@@ -30,6 +31,13 @@ export class MemberController {
     private readonly memberService: MemberService,
     private readonly memberLinkService: MemberLinkService,
   ) {}
+
+  @Post('add-member')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN, Role.ORDFORANDE)
+  createMember(@Body() body: CreateMemberDto) {
+    return this.memberService.createMember(body);
+  }
 
   @Get('gudar')
   @UseGuards(JwtAuthGuard)
