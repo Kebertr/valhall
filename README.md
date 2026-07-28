@@ -2,7 +2,7 @@
 
 Valhall is a web application for managing members, bongar, recent activity, account linking, and redemptions.
 
-The project is structured as an npm monorepo containing a React frontend, NestJS microservices, and a shared authentication package. 
+The project is structured as a pnpm workspace containing a React frontend, NestJS microservices, and a shared authentication package.
 
 ## Architecture
 
@@ -41,7 +41,7 @@ database-architecture.md   Database documentation
 
 Install:
 
-- Node.js and npm
+- Node.js and pnpm (Corepack is recommended)
 - Docker with Docker Compose
 - Access to the configured Keycloak realm
 
@@ -78,10 +78,16 @@ Do not commit real passwords or credentials.
 Run from the repository root:
 
 ```bash
-npm install
+corepack enable
+pnpm install
 ```
 
-Because the project uses npm workspaces, this installs dependencies for the frontend, services, and shared packages.
+```bash
+pnpm --filter bong-api add class-validator@^0.15.1
+pnpm --filter bong-api add class-transformer@^0.5.1
+```
+
+Because the project uses a pnpm workspace, this installs dependencies for the frontend, services, and shared packages. If pnpm reports ignored dependency build scripts on the first install, review them with `pnpm approve-builds` and run `pnpm install` again.
 
 ## Run with Docker Compose
 
@@ -115,7 +121,7 @@ docker compose down -v
 
 Warning: the second command permanently deletes local database data.
 
-## Run services with npm
+## Run services with pnpm
 
 Start the PostgreSQL containers:
 
@@ -126,15 +132,15 @@ docker compose up -d postgres-bong postgres-member
 Run each application in a separate terminal:
 
 ```bash
-npm run start:member
+pnpm start:member
 ```
 
 ```bash
-npm run start:bong
+pnpm start:bong
 ```
 
 ```bash
-npm run start:frontend
+pnpm start:frontend
 ```
 
 ## Prisma
@@ -142,20 +148,15 @@ npm run start:frontend
 Generate both Prisma clients:
 
 ```bash
-npx prisma generate --schema services/member-api/prisma/schema.prisma
-npx prisma generate --schema services/bong-api/prisma/schema.prisma
+pnpm --filter member-api exec prisma generate
+pnpm --filter bong-api exec prisma generate
 ```
 
 Run development migrations from the relevant service:
 
 ```bash
-cd services/member-api
-npx prisma migrate dev
-```
-
-```bash
-cd services/bong-api
-npx prisma migrate dev
+pnpm --filter member-api exec prisma migrate dev
+pnpm --filter bong-api exec prisma migrate dev
 ```
 
 Container startup uses `prisma migrate deploy` to apply committed migrations.
@@ -209,15 +210,15 @@ Protected endpoints require a Keycloak bearer token.
 Build all workspaces:
 
 ```bash
-npm run build
+pnpm build
 ```
 
 Build an individual application:
 
 ```bash
-npm run build:frontend
-npm run build:member
-npm run build:bong
+pnpm build:frontend
+pnpm build:member
+pnpm build:bong
 ```
 
 ## Tests
@@ -225,16 +226,16 @@ npm run build:bong
 Run all available tests:
 
 ```bash
-npm test
+pnpm test
 ```
 
 Run tests for an individual workspace:
 
 ```bash
-npm test --workspace=frontend
-npm test --workspace=member-api
-npm test --workspace=bong-api
-npm test --workspace=@valhall/auth
+pnpm --filter frontend test
+pnpm --filter member-api test
+pnpm --filter bong-api test
+pnpm --filter @valhall/auth test
 ```
 
 ## Linting
@@ -242,14 +243,14 @@ npm test --workspace=@valhall/auth
 Run frontend linting:
 
 ```bash
-npm run lint --workspace=frontend
+pnpm --filter frontend lint
 ```
 
 Run backend linting:
 
 ```bash
-npm run lint --workspace=member-api
-npm run lint --workspace=bong-api
+pnpm --filter member-api lint
+pnpm --filter bong-api lint
 ```
 
 The backend lint commands currently apply automatic fixes.

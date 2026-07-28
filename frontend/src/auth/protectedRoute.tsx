@@ -1,5 +1,5 @@
 import type { PropsWithChildren } from "react";
-import { Navigate } from "react-router";
+import { Navigate } from "react-router-dom";
 import { getKeycloak } from "../auth/keycloak";
 
 interface Props {

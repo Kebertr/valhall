@@ -16,6 +16,29 @@ type Invitation = {
   expiresAt: string;
 };
 
+async function copyText(text: string) {
+  if (navigator.clipboard && window.isSecureContext) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "fixed";
+  textarea.style.opacity = "0";
+  document.body.appendChild(textarea);
+  textarea.select();
+
+  try {
+    if (!document.execCommand("copy")) {
+      throw new Error("Copy command was rejected");
+    }
+  } finally {
+    textarea.remove();
+  }
+}
+
 export default function MemberLinks() {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -70,12 +93,17 @@ export default function MemberLinks() {
 
   async function copyInvitation() {
     if (!invitation) return;
-    await navigator.clipboard.writeText(invitation.url);
-    setMessage("Länken har kopierats.");
+
+    try {
+      await copyText(invitation.url);
+      setMessage("Länken har kopierats.");
+    } catch {
+      setMessage("Kunde inte kopiera länken. Markera och kopiera den manuellt.");
+    }
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white">
+    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 pb-24 text-white">
       {menuOpen && (
         <div
           className="fixed inset-0 z-40 bg-black/60"
@@ -84,8 +112,20 @@ export default function MemberLinks() {
       )}
 
       <aside
-        className={`fixed top-0 left-0 z-50 h-full w-72 bg-slate-800 shadow-2xl transition-transform ${menuOpen ? "translate-x-0" : "-translate-x-full"}`}
+        className={`fixed top-0 left-0 z-50 h-full w-72 bg-slate-800 shadow-2xl transition-transform duration-300 ${menuOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
+        <div className="border-b border-slate-700 p-6">
+          <div className="flex items-center gap-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-600 font-bold">
+              R
+            </div>
+            <div>
+              <p className="font-semibold">Rasmus</p>
+              <p className="text-sm text-slate-400">ACTIVE</p>
+            </div>
+          </div>
+        </div>
+
         <nav className="flex flex-col p-4">
           <button
             onClick={() => navigate("/")}
@@ -100,6 +140,18 @@ export default function MemberLinks() {
             Ge bong
           </button>
           <button
+            onClick={() => navigate("/redeem")}
+            className="rounded-xl p-3 text-left hover:bg-slate-700"
+          >
+            Lös in bong
+          </button>
+          <button
+            onClick={() => navigate("/leaderboard")}
+            className="rounded-xl p-3 text-left hover:bg-slate-700"
+          >
+            Topplista
+          </button>
+          <button
             onClick={() => navigate("/gudar")}
             className="rounded-xl p-3 text-left hover:bg-slate-700"
           >
@@ -111,22 +163,42 @@ export default function MemberLinks() {
           >
             Medlemslänkar
           </button>
-          <LogoutButton className="mt-8 border-t border-slate-700 pt-4 text-left" />
+          <button
+            onClick={() => navigate("/notifications")}
+            className="rounded-xl p-3 text-left hover:bg-slate-700"
+          >
+            Notiser
+          </button>
+          <div className="mt-8 border-t border-slate-700 pt-4">
+            <button
+              onClick={() => navigate("/profile")}
+              className="w-full rounded-xl p-3 text-left hover:bg-slate-700"
+            >
+              Redigera profil
+            </button>
+            <LogoutButton className="w-full rounded-xl p-3 text-left hover:bg-slate-700" />
+          </div>
         </nav>
       </aside>
 
-      <header className="sticky top-0 border-b border-slate-800 bg-slate-950/90">
+      <header className="sticky top-0 z-30 border-b border-slate-800 bg-slate-950/90 backdrop-blur">
         <div className="relative flex min-h-[160px] items-start p-4">
           <button
             onClick={() => setMenuOpen(true)}
-            className="z-10 rounded-lg p-2 text-2xl"
-            aria-label="Öppna meny"
+            className="z-10 rounded-lg p-2 text-2xl hover:bg-slate-800"
+            aria-label="Open menu"
           >
             ☰
           </button>
           <div className="absolute top-4 left-1/2 flex -translate-x-1/2 flex-col items-center">
-            <img src={valhallLogo} alt="Valhall" className="h-24 w-auto" />
-            <h1 className="mt-2 text-3xl font-bold text-blue-500">Valhall</h1>
+            <img
+              src={valhallLogo}
+              alt="Valhall Logo"
+              className="h-24 w-auto object-contain"
+            />
+            <h1 className="mt-2 text-3xl font-bold tracking-wider text-blue-500">
+              Valhall
+            </h1>
           </div>
         </div>
       </header>
@@ -164,7 +236,14 @@ export default function MemberLinks() {
 
           {invitation && (
             <div className="mt-6 rounded-xl bg-slate-700 p-4">
-              <p className="break-all">{invitation.url}</p>
+              <input
+                type="text"
+                readOnly
+                value={invitation.url}
+                onFocus={(event) => event.currentTarget.select()}
+                aria-label="Inbjudningslänk"
+                className="w-full rounded-lg bg-slate-800 p-3 text-sm"
+              />
               <p className="mt-2 text-sm text-slate-300">
                 Giltig till{" "}
                 {new Date(invitation.expiresAt).toLocaleString("sv-SE")}

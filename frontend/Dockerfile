@@ -2,12 +2,14 @@ FROM node:24-alpine
 
 WORKDIR /app
 
-COPY package*.json ./
+RUN corepack enable
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY packages/auth/package.json ./packages/auth/package.json
 COPY services/member-api/package.json ./services/member-api/package.json
 COPY services/bong-api/package.json ./services/bong-api/package.json
 COPY frontend/package.json ./frontend/package.json
-RUN npm ci
+RUN pnpm install --frozen-lockfile
 
 COPY frontend ./frontend
 
@@ -20,8 +22,8 @@ ENV VITE_KEYCLOAK_URL=$VITE_KEYCLOAK_URL
 ENV VITE_KEYCLOAK_REALM=$VITE_KEYCLOAK_REALM
 ENV VITE_KEYCLOAK_CLIENT_ID=$VITE_KEYCLOAK_CLIENT_ID
 
-RUN npm run build --workspace=frontend
+RUN pnpm --filter frontend build
 
 EXPOSE 5173
 
-CMD ["npm", "run", "preview", "--workspace=frontend", "--", "--host", "0.0.0.0"]
+CMD ["pnpm", "--filter", "frontend", "run", "preview", "--", "--host", "0.0.0.0"]
