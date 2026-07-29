@@ -16,6 +16,7 @@
     "test": "pnpm --recursive --if-present test",
     "start:member": "pnpm --filter member-api start:dev",
     "start:bong": "pnpm --filter bong-api start:dev",
-    "start:frontend": "pnpm --filter frontend dev"
+    "start:frontend": "pnpm --filter frontend dev",
+    "start:videos": "pnpm --filter videos-api start:dev"
   }
 }

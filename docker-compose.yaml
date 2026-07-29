@@ -33,6 +33,23 @@ services:
     networks:
       - app-network
 
+  postgres-videos:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB_VIDEOS}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB_VIDEOS}"]
+      interval: 3s
+      retries: 10
+    ports:
+      - "5435:5432"
+    volumes:
+      - videos-db-data:/var/lib/postgresql/data
+    networks:
+      - app-network
+
   bong-api:
     build:
       context: .
@@ -71,6 +88,26 @@ services:
     networks:
       - app-network
 
+  videos-api:
+    build:
+      context: .
+      dockerfile: services/videos-api/Dockerfile
+    ports:
+      - "3003:3003"
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres-videos:5432/${POSTGRES_DB_VIDEOS}
+      KEYCLOAK_URL: ${KEYCLOAK_URL}
+      KEYCLOAK_REALM: ${KEYCLOAK_REALM}
+      KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID}
+      MEMBER_API_URL: http://member-api:3002
+    depends_on:
+      postgres-videos:
+        condition: service_healthy
+      member-api:
+        condition: service_started
+    networks:
+      - app-network
+
   frontend:
     build:
       context: .
@@ -85,6 +122,7 @@ services:
     depends_on:
       - bong-api
       - member-api
+      - videos-api
     networks:
       - app-network
 
@@ -92,6 +130,7 @@ services:
 volumes:
   bong-db-data:
   member-db-data:
+  videos-db-data:
 
 networks:
   app-network:

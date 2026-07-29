@@ -73,6 +73,100 @@ MEMBER_API_URL=http://localhost:3002
 
 Do not commit real passwords or credentials.
 
+## MinIO bucket access
+
+Valhall uses private MinIO buckets. Applications must use restricted access
+keys; never configure the MinIO administrator credentials in an API.
+
+Use separate identities for development and production:
+
+| Environment | Identity | Buckets |
+| --- | --- | --- |
+| Development | `valhall-media-dev` | `valhall-videos-dev` and, later, `valhall-profiles-dev` |
+| Production | `valhall-media-prod` | `valhall-videos` and, later, `valhall-profiles` |
+
+Development credentials must not have access to production buckets.
+
+On Arch Linux, install the MinIO client. Its binary is named `mcli`
+
+```bash
+sudo pacman -S minio-client
+mcli --version
+```
+
+Configure an administrative alias using the MinIO API endpoint, not the object
+browser on port `9001`. The endpoint must include its scheme:
+
+```bash
+mcli alias set \
+  valhall-admin \
+  https://MINIO_ADMIN_API \
+  ADMIN_ACCESS_KEY \
+  ADMIN_SECRET_KEY
+```
+
+Keep administrator credentials out of shell history where possible and remove
+the alias after administration if it is not needed regularly.
+
+Create a temporary development policy file outside the repository, for example
+`/tmp/valhall-media-dev-policy.json`:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["s3:ListBucket"],
+      "Resource": [
+        "arn:aws:s3:::valhall-videos-dev"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:PutObject",
+        "s3:DeleteObject"
+      ],
+      "Resource": [
+        "arn:aws:s3:::valhall-videos-dev/*"
+      ]
+    }
+  ]
+}
+```
+
+When the profile-image bucket is created, add its bucket ARN to the first
+resource list and its `/*` object ARN to the second list. Create a restricted
+development access key:
+
+```bash
+mcli admin accesskey create \
+  valhall-admin \
+  --name valhall-media-dev \
+  --policy /tmp/valhall-media-dev-policy.json
+```
+
+Save the generated access and secret keys immediately; the secret cannot be
+retrieved later. Configure `videos-api` locally with:
+
+```dotenv
+MINIO_ENDPOINT=upload.kebert.se
+MINIO_PORT=443
+MINIO_USE_SSL=true
+MINIO_VIDEO_BUCKET=valhall-videos-dev
+MINIO_ACCESS_KEY=generated-development-access-key
+MINIO_SECRET_KEY=generated-development-secret-key
+MAX_VIDEO_SIZE_BYTES=250000000
+UPLOAD_EXPIRY_SECONDS=900
+```
+
+Production follows the same process with a different access key and a policy
+that references only production buckets. Store production credentials in
+Kubernetes Secrets, not in Git or a Docker image.
+
+
 ## Install dependencies
 
 Run from the repository root:
@@ -85,6 +179,8 @@ pnpm install
 ```bash
 pnpm --filter bong-api add class-validator@^0.15.1
 pnpm --filter bong-api add class-transformer@^0.5.1
+pnpm --filter bong-api add minio
+pnpm --filter videos-api add @nestjs/config minio
 ```
 
 Because the project uses a pnpm workspace, this installs dependencies for the frontend, services, and shared packages. If pnpm reports ignored dependency build scripts on the first install, review them with `pnpm approve-builds` and run `pnpm install` again.
@@ -140,16 +236,31 @@ pnpm start:bong
 ```
 
 ```bash
+pnpm start:videos
+```
+
+```bash
 pnpm start:frontend
 ```
 
 ## Prisma
+
+```nest new videos-api```
+
+Go into videos-api directory
+```pnpm add prisma --save-dev```
+
+```pnpm add @prisma/client @prisma/adapter-pg pg```
+
+```pnpm dlx prisma init --output ../src/generated/prisma```
+
 
 Generate both Prisma clients:
 
 ```bash
 pnpm --filter member-api exec prisma generate
 pnpm --filter bong-api exec prisma generate
+pnpm --filter videos-api exec prisma generate
 ```
 
 Run development migrations from the relevant service:
@@ -157,6 +268,7 @@ Run development migrations from the relevant service:
 ```bash
 pnpm --filter member-api exec prisma migrate dev
 pnpm --filter bong-api exec prisma migrate dev
+pnpm --filter videos-api exec prisma migrate dev
 ```
 
 Container startup uses `prisma migrate deploy` to apply committed migrations.
@@ -219,6 +331,7 @@ Build an individual application:
 pnpm build:frontend
 pnpm build:member
 pnpm build:bong
+pnpm build:videos
 ```
 
 ## Tests

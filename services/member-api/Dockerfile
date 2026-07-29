@@ -8,6 +8,7 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY packages/auth/package.json ./packages/auth/package.json
 COPY services/member-api/package.json ./services/member-api/package.json
 COPY services/bong-api/package.json ./services/bong-api/package.json
+COPY services/videos-api/package.json ./services/videos-api/package.json
 COPY frontend/package.json ./frontend/package.json
 RUN pnpm install --frozen-lockfile
 

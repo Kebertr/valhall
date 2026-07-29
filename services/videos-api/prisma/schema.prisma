@@ -1,0 +1,62 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum VideoStatus {
+  PENDING
+  PROCESSING
+  READY
+  REJECTED
+}
+
+model Video {
+  id     String      @id @default(uuid())
+  userId String
+  status VideoStatus @default(PENDING)
+
+  // MinIO
+  bucket          String
+  sourceObjectKey String
+  readyObjectKey  String?
+
+  // client information
+  originalFilename    String
+  declaredContentType String
+  declaredSizeBytes   BigInt
+
+  // Information verified from the uploaded object
+  detectedContentType String?
+  actualSizeBytes     BigInt?
+
+  // Information about the converted MP4
+  outputSizeBytes BigInt?
+  durationSeconds Float?
+  width           Int?
+  height          Int?
+
+  // Processing result
+  rejectionReason String?
+
+  // Lifecycle
+  uploadExpiresAt DateTime
+  uploadedAt      DateTime?
+  processedAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([bucket, sourceObjectKey])
+  @@unique([bucket, readyObjectKey])
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+}
