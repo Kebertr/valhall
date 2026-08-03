@@ -13,6 +13,7 @@ COPY frontend/package.json ./frontend/package.json
 RUN pnpm install --frozen-lockfile
 
 COPY packages/auth ./packages/auth
+COPY proto ./proto
 COPY services/videos-api ./services/videos-api
 RUN pnpm --filter videos-api exec prisma generate
 RUN pnpm --filter videos-api build
@@ -29,6 +30,7 @@ RUN corepack enable
 COPY --from=build /app/package.json /app/pnpm-lock.yaml /app/pnpm-workspace.yaml ./
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/packages/auth ./packages/auth
+COPY --from=build /app/proto ./proto
 COPY --from=build /app/services/videos-api/package.json ./services/videos-api/package.json
 COPY --from=build /app/services/videos-api/node_modules ./services/videos-api/node_modules
 COPY --from=build /app/services/videos-api/dist ./services/videos-api/dist

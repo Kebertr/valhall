@@ -1,25 +1,49 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Headers,
+  Param,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { MinioVideoService } from './minio-video.service';
-
+import { JwtAuthGuard } from '@valhall/auth';
+import { CreateVideoUploadDto, VideoUploadCompleteDto } from './dto/videos.dto';
+@ApiTags('Videos')
+@ApiBearerAuth('keycloak')
+@UseGuards(JwtAuthGuard)
 @Controller('files')
 export class MinioVideoController {
   constructor(private readonly service: MinioVideoService) {}
-
-  @Get('buckets')
-  bucketsList() {
-    return this.service.bucketsList();
-  }
 
   @Get('file-url/:name')
   getFile(@Param('name') name: string) {
     return this.service.getFile(name);
   }
 
+  @Post('complete')
+  completeUpload(
+    @Body() body: VideoUploadCompleteDto,
+    @Headers('authorization') authorization: string,
+  ) {
+    return this.service.completeUpload(
+      body.videoId,
+      authorization,
+    );
+  }
+
   @Post('upload-url')
   createUploadUrl(
-    @Body('filename') filename: string,
-    @Body('contentType') contentType: string,
+    @Body() body: CreateVideoUploadDto,
+    @Headers('authorization') authorization: string,
   ) {
-    return this.service.createUploadPost(filename, contentType);
+    return this.service.createUploadPost(
+      body.filename,
+      body.contentType,
+      body.sizeBytes,
+      authorization,
+    );
   }
 }
