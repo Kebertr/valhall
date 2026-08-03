@@ -13,6 +13,7 @@ COPY frontend/package.json ./frontend/package.json
 RUN pnpm install --frozen-lockfile
 
 COPY packages/auth ./packages/auth
+COPY proto ./proto
 COPY services/bong-api ./services/bong-api
 RUN pnpm --filter bong-api exec prisma generate
 RUN pnpm --filter bong-api build
@@ -29,6 +30,7 @@ RUN corepack enable
 COPY --from=build /app/package.json /app/pnpm-lock.yaml /app/pnpm-workspace.yaml ./
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/packages/auth ./packages/auth
+COPY --from=build /app/proto ./proto
 COPY --from=build /app/services/bong-api/package.json ./services/bong-api/package.json
 COPY --from=build /app/services/bong-api/node_modules ./services/bong-api/node_modules
 COPY --from=build /app/services/bong-api/dist ./services/bong-api/dist

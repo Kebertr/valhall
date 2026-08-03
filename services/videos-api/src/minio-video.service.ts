@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Metadata } from '@grpc/grpc-js';
-import type { ClientGrpc } from '@nestjs/microservices';
+import { type ClientGrpc } from '@nestjs/microservices';
 import { randomUUID } from 'node:crypto';
 import * as Minio from 'minio';
 import { firstValueFrom, type Observable } from 'rxjs';
@@ -51,6 +51,32 @@ export class MinioVideoService {
     );
   }
 
+  async getVideoPlaybackUrl(videoId: string) {
+    const video = await this.prisma.video.findFirst({
+      where: {
+        id: videoId,
+        status: 'UPLOADED',
+      },
+      select: {
+        bucket: true,
+        objectKey: true,
+      },
+    });
+
+    if (!video) {
+      throw new NotFoundException('Uploaded video not found');
+    }
+
+    const videoUrl = await this.minioService.presignedUrl(
+      'GET',
+      video.bucket,
+      video.objectKey,
+      15 * 60,
+    );
+
+    return { videoUrl };
+  }
+  
   async createUploadPost(
     originalFilename: string,
     contentType: string,
@@ -120,8 +146,6 @@ export class MinioVideoService {
       objectName,
       postURL,
       formData,
-      expiresInSeconds,
-      maximumFileSize,
     };
   }
 

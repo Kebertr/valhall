@@ -29,6 +29,19 @@ import { BongmeisterService } from './bongmeister.service';
         }),
         inject: [ConfigService],
       },
+      {
+        name: 'VIDEO_PACKAGE',
+        imports: [ConfigModule],
+        useFactory: (config: ConfigService) => ({
+          transport: Transport.GRPC,
+          options: {
+            package: 'member',
+            protoPath: join(process.cwd(), '../../proto/member/member.proto'),
+            url: config.get<string>('VIDEO_GRPC_URL') ?? 'localhost:50052',
+          },
+        }),
+        inject: [ConfigService],
+      },
     ]),
   ],
   controllers: [BongController, RedemptionController, BongmeisterController],
