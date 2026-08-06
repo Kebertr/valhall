@@ -27,4 +27,13 @@ export class BongmeisterController {
   ) {
     return this.bongmeisterService.moderate(id, body, authorization);
   }
+
+  @Patch('redeem/:id')
+  moderateRedemption(
+    @Param('id') id: string,
+    @Body() body: ModerateBongDto,
+    @Headers('authorization') authorization: string,
+  ) {
+    return this.bongmeisterService.moderateRedeem(id, body, authorization);
+  }
 }

@@ -33,6 +33,14 @@ const devProxy = {
     target: "http://localhost:3001",
     changeOrigin: true,
   },
+  "/api/redemption": {
+    target: "http://localhost:3001",
+    changeOrigin: true,
+  },
+  "/api/files": {
+    target: "http://localhost:3003",
+    changeOrigin: true,
+  },
 };
 
 const previewProxy = {
@@ -52,6 +60,14 @@ const previewProxy = {
   },
   "/api/bongmeister": {
     target: "http://bong-api:3001",
+    changeOrigin: true,
+  },
+  "/api/redemption": {
+    target: "http://bong-api:3001",
+    changeOrigin: true,
+  },
+  "/api/files": {
+    target: "http://videos-api:3003",
     changeOrigin: true,
   },
 };

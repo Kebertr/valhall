@@ -181,6 +181,17 @@ pnpm --filter bong-api add class-validator@^0.15.1
 pnpm --filter bong-api add class-transformer@^0.5.1
 pnpm --filter bong-api add minio
 pnpm --filter videos-api add @nestjs/config minio
+pnpm --filter videos-api add \
+"@valhall/auth@workspace:*" \
+  @nestjs/passport \
+  passport \
+  passport-jwt \
+  jwks-rsa
+
+pnpm --filter videos-api add \
+  class-validator \
+  class-transformer \
+  @nestjs/swagger
 ```
 
 Because the project uses a pnpm workspace, this installs dependencies for the frontend, services, and shared packages. If pnpm reports ignored dependency build scripts on the first install, review them with `pnpm approve-builds` and run `pnpm install` again.
@@ -271,6 +282,10 @@ pnpm --filter bong-api exec prisma migrate dev
 pnpm --filter videos-api exec prisma migrate dev
 ```
 
+If the schema does not match the prisma client and you need to regenerate the prisma client.
+```
+pnpm exec prisma generate --config prisma.config.ts
+```
 Container startup uses `prisma migrate deploy` to apply committed migrations.
 
 ## Authentication

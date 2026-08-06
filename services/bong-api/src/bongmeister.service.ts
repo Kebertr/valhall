@@ -60,6 +60,32 @@ export class BongmeisterService {
     });
   }
 
+  async moderateRedeem(id: string, body: ModerateBongDto, authorization: string) {
+    const bong = await this.prisma.redemption.findUnique({ where: { id } });
+
+    if (!bong) {
+      throw new NotFoundException('Bongen hittades inte');
+    }
+
+    if (bong.status !== approveStatus.PENDING) {
+      throw new BadRequestException('Bongen har redan hanterats');
+    }
+
+    const approved = body.action === BongAction.APPROVE;
+    const reviewer = await this.resolveCurrentMember(authorization);
+
+    return this.prisma.redemption.update({
+      where: { id },
+      data: {
+        status: approved ? approveStatus.APPROVED : approveStatus.DENIED,
+        acceptedId: reviewer.id,
+        ...(approved && body.amount !== undefined
+          ? { amount: body.amount }
+          : {}),
+      },
+    });
+  }
+
   private async resolveCurrentMember(authorization: string) {
     const metadata = new Metadata();
     metadata.add('authorization', authorization);

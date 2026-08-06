@@ -15,10 +15,6 @@ type CompletedVideoResponse = {
   videoId: string;
 };
 
-type VideoPlaybackResponse = {
-  videoUrl: string;
-};
-
 interface VideoGrpcService {
   getPostUpload(
     request: {
@@ -36,12 +32,6 @@ interface VideoGrpcService {
     metadata: Metadata,
   ): Observable<CompletedVideoResponse>;
 
-  getVideoPlaybackUrl(
-    request: {
-      videoId: string;
-    },
-    metadata: Metadata,
-  ): Observable<VideoPlaybackResponse>;
 }
 
 type CurrentMember = {
@@ -177,6 +167,7 @@ export class RedemptionService {
         videoId: true,
         status: true,
         createdAt: true,
+        acceptedId: true,
       },
     });
 
@@ -184,49 +175,26 @@ export class RedemptionService {
       return [];
     }
 
-    const withVideos = await Promise.all(
-      redemptions.map(async (redemption) => {
-        try {
-          const video = await firstValueFrom(
-            this.videoService.getVideoPlaybackUrl(
-              { videoId: redemption.videoId },
-              metadata,
-            ),
-          );
-
-          return { ...redemption, videoUrl: video.videoUrl };
-        } catch {
-          return null;
-        }
-      }),
-    );
-    const uploadedRedemptions = withVideos.filter(
-      (redemption): redemption is NonNullable<typeof redemption> =>
-        redemption !== null,
-    );
-
-    if (uploadedRedemptions.length === 0) {
-      return [];
-    }
-
     const memberIds = [
-      ...new Set(uploadedRedemptions.map((redemption) => redemption.toId)),
+      ...new Set(redemptions.map((redemption) => redemption.toId)),
     ];
     const { members } = await firstValueFrom(
       this.memberService.resolveMemberNames({ ids: memberIds }, metadata),
     );
-    const namesById = new Map(
-      members.map((member) => [member.id, member.name]),
-    );
 
-    return uploadedRedemptions.map((redemption) => ({
+    return redemptions.map((redemption) => {
+      const receiver = members.find((member) => member.id === redemption.toId);
+      const reviewer = members.find((member) => member.id === redemption.acceptedId);
+
+      return {
       id: redemption.id,
-      memberName: namesById.get(redemption.toId) ?? 'Okänd medlem',
+      memberName: receiver?.name ?? 'Okänd medlem',
       amount: redemption.amount,
       status: redemption.status,
       createdAt: redemption.createdAt,
-      videoUrl: redemption.videoUrl,
-    }));
+      videoId: redemption.videoId,
+      acceptedByName: reviewer?.name ?? 'Okänd medlem',
+    }});
   }
 
   private createMetadata(authorization: string) {

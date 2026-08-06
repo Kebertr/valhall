@@ -72,23 +72,6 @@ export class VideoGrpcController {
     );
   }
 
-  @GrpcMethod('VideoService', 'GetVideoPlaybackUrl')
-  async getVideoPlaybackUrl(
-    request: VideoIdRequest,
-    metadata: Metadata,
-  ) {
-    this.getAuthorization(metadata);
-
-    try {
-      return await this.videoService.getVideoPlaybackUrl(request.videoId);
-    } catch {
-      throw new RpcException({
-        code: status.NOT_FOUND,
-        message: 'Uploaded video not found',
-      });
-    }
-  }
-
   private getAuthorization(metadata: Metadata): string {
     const authorization =
       metadata.get('authorization')[0]?.toString();

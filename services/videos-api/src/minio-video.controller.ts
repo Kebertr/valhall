@@ -25,6 +25,11 @@ export class MinioVideoController {
     return this.service.getFile(name);
   }
 
+  @Get(':videoId/playback-url')
+  getVideoPlaybackUrl(@Param('videoId') videoId: string) {
+    return this.service.getVideoPlaybackUrl(videoId);
+  }
+
   @Post('complete')
   completeUpload(
     @Body() body: VideoUploadCompleteDto,

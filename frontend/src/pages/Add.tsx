@@ -38,7 +38,7 @@ function activityStatus(activity: RecentActivity) {
     return label;
   }
 
-  return `${label} från ${activity.acceptedByName}`;
+  return `${label} av ${activity.acceptedByName}`;
 }
 
 async function getRecentActivity(skip = 0) {
@@ -96,9 +96,7 @@ function AddShot() {
       try {
         const response = await authFetch("/api/members/shot-targets");
 
-        if (!response.ok) {
-          throw new Error("Failed to fetch members");
-        }
+        if (!response.ok) throw new Error("Failed to fetch members");
 
         const data = (await response.json()) as Member[];
 

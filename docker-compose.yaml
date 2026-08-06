@@ -61,11 +61,14 @@ services:
       KEYCLOAK_URL: ${KEYCLOAK_URL}
       KEYCLOAK_REALM: ${KEYCLOAK_REALM}
       KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID}
-      MEMBER_API_URL: http://member-api:3002
+      MEMBER_GRPC_URL: member-api:50051
+      VIDEO_GRPC_URL: videos-api:50052
     depends_on:
       postgres-bong:
         condition: service_healthy
       member-api:
+        condition: service_started
+      videos-api:
         condition: service_started
     networks:
       - app-network
@@ -99,7 +102,15 @@ services:
       KEYCLOAK_URL: ${KEYCLOAK_URL}
       KEYCLOAK_REALM: ${KEYCLOAK_REALM}
       KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID}
-      MEMBER_API_URL: http://member-api:3002
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
+      MEMBER_GRPC_URL: member-api:50051
+      VIDEO_GRPC_BIND_URL: 0.0.0.0:50052
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT}
+      MINIO_PORT: ${MINIO_PORT}
+      MINIO_USE_SSL: ${MINIO_USE_SSL}
+      MINIO_VIDEO_BUCKET: ${MINIO_VIDEO_BUCKET}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
     depends_on:
       postgres-videos:
         condition: service_healthy
