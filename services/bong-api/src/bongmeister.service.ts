@@ -48,15 +48,33 @@ export class BongmeisterService {
     const approved = body.action === BongAction.APPROVE;
     const reviewer = await this.resolveCurrentMember(authorization);
 
-    return this.prisma.add.update({
-      where: { id },
-      data: {
-        status: approved ? approveStatus.APPROVED : approveStatus.DENIED,
-        acceptedId: reviewer.id,
-        ...(approved && body.amount !== undefined
-          ? { amount: body.amount }
-          : {}),
-      },
+    await this.prisma.$transaction(async (base) => {
+      const finalAmount = body.amount ?? bong.amount;
+      
+      await base.add.update({
+        where: { id },
+        data: {
+          status: approved ? approveStatus.APPROVED : approveStatus.DENIED,
+          acceptedId: reviewer.id,
+          amount: finalAmount,
+          }
+      });
+
+    if (approved) {
+      await base.bongBalance.upsert({
+        where: { memberId: bong.toId },
+        create: { memberId: bong.toId, totalAdded: finalAmount },
+        update: { totalAdded: { increment: finalAmount } },
+      });
+    }
+    return {
+      id: bong.id,
+      toId: bong.toId,
+      fromId: bong.fromId,
+      amount: bong.amount,
+      status: approved ? approveStatus.APPROVED : approveStatus.DENIED,
+      acceptedId: reviewer.id,
+    }
     });
   }
 
