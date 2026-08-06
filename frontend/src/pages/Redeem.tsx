@@ -178,8 +178,16 @@ function Redeem() {
         }),
       });
 
+      if(response.status === 409) {
+        throw new Error("Du har inte så här många bongar");
+      }
+
+      if (response.status === 404) {
+        throw new Error("Du verkar inte ha något saldo i bongdatabasen. Ring Bongmeister");
+      }
+
       if (!response.ok) {
-        throw new Error("Kunde inte skapa inlösningen.");
+        throw new Error("Något gick fel");
       }
 
       const upload = (await response.json()) as {

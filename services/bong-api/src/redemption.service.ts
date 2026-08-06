@@ -1,9 +1,10 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from './prisma.service';
 import { CreateRedemptionDto } from './dto/redemption.dto';
 import { firstValueFrom, Observable } from 'rxjs';
 import { Metadata } from '@grpc/grpc-js';
 import * as microservices from '@nestjs/microservices';
+import { approveStatus } from './generated/prisma/browser';
 
 type VideoUploadResponse = {
   videoId: string;
@@ -97,24 +98,60 @@ export class RedemptionService {
       ),
     );
 
-    const redemption = await this.prisma.redemption.create({
-      data: {
-        toId: member.id,
-        amount: body.bongAmount,
-        videoId: upload.videoId,
-        status: 'PENDING',
-      },
-      select: {
-        id: true,
-      },
-    });
+    return this.prisma.$transaction(async (base) => {
+      const balance = await base.bongBalance.findUnique({
+        where: {
+          memberId: member.id,
+        },
+      });
 
-    return {
-      redemptionId: redemption.id,
-      videoId: upload.videoId,
-      postUrl: upload.postUrl,
-      formData: upload.formData,
-    };
+      if (!balance) {
+        throw new ConflictException(
+          'Insufficient balance for redemption',
+        );
+      }
+
+      const available =
+        balance.totalAdded -
+        balance.totalTaken -
+        balance.totalPending;
+
+      if (available < body.bongAmount) {
+        throw new ConflictException(
+          'Insufficient balance for redemption',
+        );
+      }
+
+      await base.bongBalance.update({
+        where: {
+          memberId: member.id,
+        },
+        data: {
+          totalPending: {
+            increment: body.bongAmount,
+          },
+        },
+      });
+
+      const redemption = await base.redemption.create({
+        data: {
+          toId: member.id,
+          amount: body.bongAmount,
+          videoId: upload.videoId,
+          status: approveStatus.PENDING,
+        },
+      });
+
+      return {
+        redemptionId: redemption.id,
+        videoId: upload.videoId,
+        postUrl: upload.postUrl,
+        formData: upload.formData,
+      };
+    },
+    {
+      isolationLevel: 'Serializable',
+    });
   }
 
   async completeRedemptionUpload(

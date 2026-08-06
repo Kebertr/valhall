@@ -3,6 +3,7 @@ import {
   Injectable,
   NotFoundException,
   Inject,
+  ConflictException,
 } from '@nestjs/common';
 import { Metadata } from '@grpc/grpc-js';
 import type { ClientGrpc } from '@nestjs/microservices';
@@ -91,16 +92,103 @@ export class BongmeisterService {
 
     const approved = body.action === BongAction.APPROVE;
     const reviewer = await this.resolveCurrentMember(authorization);
+    
 
-    return this.prisma.redemption.update({
-      where: { id },
-      data: {
-        status: approved ? approveStatus.APPROVED : approveStatus.DENIED,
-        acceptedId: reviewer.id,
-        ...(approved && body.amount !== undefined
-          ? { amount: body.amount }
-          : {}),
-      },
+    return this.prisma.$transaction(async (base) => {
+      const redemption = await base.redemption.findUnique({
+        where: { id },
+      });
+
+      if (!redemption) {
+        throw new NotFoundException('Den hittades inte');
+      }
+
+      if (redemption.status !== approveStatus.PENDING) {
+        throw new BadRequestException(
+          'Already redeemed',
+        );
+      }
+
+      const balance = await base.bongBalance.findUnique({
+        where: {
+          memberId: redemption.toId,
+        },
+      });
+
+      if (!balance) {
+        throw new ConflictException(
+          'Bong balance not found',
+        );
+      }
+
+      const finalAmount =
+        body.amount ?? redemption.amount;
+
+      const additionalAmount =
+        finalAmount - redemption.amount;
+
+      const available =
+        balance.totalAdded -
+        balance.totalTaken -
+        balance.totalPending;
+
+      if (approved && additionalAmount > 0 && available < additionalAmount) {
+        throw new ConflictException(
+          'Insufficient balance',
+        );
+      }
+      const statusUpdate = await base.redemption.updateMany({
+        where: {
+          id,
+          status: approveStatus.PENDING,
+        },
+        data: {
+          status: approved? approveStatus.APPROVED : approveStatus.DENIED,
+          acceptedId: reviewer.id,
+          amount: finalAmount,
+          reviewedAt: new Date(),
+        },
+      });
+
+      if (statusUpdate.count !== 1) {
+        throw new BadRequestException(
+          'Already redeemed',
+        );
+      }
+
+      if (approved) {
+        await base.bongBalance.update({
+          where: {
+            memberId: redemption.toId,
+          },
+          data: {
+            totalPending: {
+              decrement: redemption.amount,
+            },
+            totalTaken: {
+              increment: finalAmount,
+            },
+          },
+        });
+      } else {
+        await base.bongBalance.update({
+          where: {
+            memberId: redemption.toId,
+          },
+          data: {
+            totalPending: {
+              decrement: redemption.amount,
+            },
+          },
+        });
+      }
+
+      return base.redemption.findUniqueOrThrow({
+        where: { id },
+      });
+    },
+    {
+      isolationLevel: 'Serializable',
     });
   }
 
