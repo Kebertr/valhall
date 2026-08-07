@@ -10,6 +10,8 @@ import { RedemptionController } from './redemption.controller';
 import { AuthModule } from '@valhall/auth';
 import { BongmeisterController } from './bongmeister.controller';
 import { BongmeisterService } from './bongmeister.service';
+import { LeaderboardService } from './leaderboard.service';
+import { LeaderboardController } from './leaderboard.controller';
 
 @Module({
   imports: [
@@ -44,12 +46,13 @@ import { BongmeisterService } from './bongmeister.service';
       },
     ]),
   ],
-  controllers: [BongController, RedemptionController, BongmeisterController],
+  controllers: [BongController, RedemptionController, BongmeisterController, LeaderboardController],
   providers: [
     BongService,
     PrismaService,
     RedemptionService,
     BongmeisterService,
+    LeaderboardService,
   ],
 })
 export class BongModule {}

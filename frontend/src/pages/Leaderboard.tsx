@@ -1,47 +1,49 @@
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import valhallLogo from "../assets/valhall.jpg";
 import LogoutButton from "../auth/LogoutButton";
 import { hasAnyRole } from "../auth/roles";
+import { authFetch } from "../auth/authFetch";
+import { useEffect, useState } from "react";
 
-const received = [
-  { name: "Joel", amount: 18 },
-  { name: "Anton", amount: 14 },
-  { name: "Rasmus", amount: 11 },
-  { name: "Filip", amount: 8 },
-];
+type LeaderboardEntry = {
+  name: string;
+  amount: number;
+};
 
-const redeemed = [
-  { name: "Rasmus", amount: 12 },
-  { name: "Joel", amount: 10 },
-  { name: "Filip", amount: 7 },
-  { name: "Anton", amount: 5 },
-];
-
-function Ranking({ entries }: { entries: typeof received }) {
-  return (
-    <div className="space-y-3">
-      {entries.map((entry, index) => (
-        <div
-          key={entry.name}
-          className="flex items-center rounded-2xl bg-slate-700/70 p-4"
-        >
-          <span className="w-12 text-xl font-bold text-blue-400">
-            #{index + 1}
-          </span>
-          <span className="flex-1 text-lg font-semibold">{entry.name}</span>
-          <span className="rounded-xl bg-slate-900/60 px-4 py-2 font-bold">
-            {entry.amount}
-          </span>
-        </div>
-      ))}
-    </div>
-  );
-}
 
 function Leaderboard() {
   const [menuOpen, setMenuOpen] = useState(false);
   const navigate = useNavigate();
+  const [entriesAdd, setEntriesAdd] = useState<LeaderboardEntry[]>([]);
+  const [entriesRedeem, setEntriesRedeem] = useState<LeaderboardEntry[]>([]);
+
+
+  useEffect(() => {
+    async function getLeaderboardAdd() {
+      const response = await authFetch("http://localhost:3001/api/leaderboard/add");
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch leaderboard");
+      }
+
+      const data = await response.json();
+      setEntriesAdd(data);
+    };
+
+    async function getLeaderboardRedeem() {
+      const response = await authFetch("http://localhost:3001/api/leaderboard/redeem");
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch leaderboard");
+      }
+
+      const data = await response.json();
+      setEntriesRedeem(data);
+    };
+
+    void getLeaderboardAdd();
+    void getLeaderboardRedeem();
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 pb-16 text-white">
@@ -86,7 +88,7 @@ function Leaderboard() {
             onClick={() => navigate("/redeem")}
             className="rounded-xl p-3 text-left hover:bg-slate-700"
           >
-            Lös in bong
+            Bli av med bong
           </button>
           <button
             onClick={() => navigate("/gudar")}
@@ -146,17 +148,27 @@ function Leaderboard() {
       <main className="grid gap-6 px-4 pt-16 lg:grid-cols-2">
         <section className="rounded-3xl border border-blue-900/30 bg-slate-800/90 p-5 shadow-2xl">
           <h2 className="mb-5 text-2xl font-bold text-blue-400">
-            Bongs received
+            Bongar mottagna
           </h2>
-          <Ranking entries={received} />
+          {entriesAdd.map((entry, index) => (
+            <div key={entry.name}>
+              #{index + 1} {entry.name}: {entry.amount}
+            </div>
+          ))}
         </section>
 
-        <section className="rounded-3xl border border-red-900/30 bg-slate-800/90 p-5 shadow-2xl">
-          <h2 className="mb-5 text-2xl font-bold text-red-400">
-            Bongs redeemed
+        <section className="rounded-3xl border border-blue-900/30 bg-slate-800/90 p-5 shadow-2xl">
+          <h2 className="mb-5 text-2xl font-bold text-blue-400">
+            Bongar mottagna
           </h2>
-          <Ranking entries={redeemed} />
+          {entriesRedeem.map((entry, index) => (
+            <div key={entry.name}>
+              #{index + 1} {entry.name}: {entry.amount}
+            </div>
+          ))}
         </section>
+
+        
       </main>
     </div>
   );

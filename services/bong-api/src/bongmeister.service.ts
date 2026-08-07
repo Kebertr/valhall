@@ -117,7 +117,7 @@ export class BongmeisterService {
 
       if (!balance) {
         throw new ConflictException(
-          'Bong balance not found',
+          'Du måste lägga till personens bongar innan',
         );
       }
 

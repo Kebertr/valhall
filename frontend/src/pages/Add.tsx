@@ -318,7 +318,7 @@ function AddShot() {
             onClick={() => navigate("/redeem")}
             className="rounded-xl p-3 text-left hover:bg-slate-700"
           >
-            Lös in bong
+            Bli av med bong
           </button>
 
           <button
