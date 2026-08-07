@@ -505,4 +505,129 @@ describe('BongService', () => {
       });
     });
   });
+  describe('onModuleInit', () => {
+    it('resolves the MemberService from the gRPC client', () => {
+      expect(grpcClient.getService).toHaveBeenCalledWith('MemberService');
+    });
+  });
+
+  describe('addShot - error edge cases', () => {
+    it('falls back to a default message when the gRPC error has no details', async () => {
+      memberGrpcService.resolveShotParticipants.mockReturnValueOnce(
+        throwError(() => ({ code: 5 })), // no `details` field
+      );
+
+      await expect(
+        service.addShot(
+          { Id: 'target-id', amount: 5, reason: 'Testing' },
+          'Bearer signed-token',
+        ),
+      ).rejects.toMatchObject({
+        status: 404,
+        response: 'Could not validate shot participants',
+      });
+    });
+
+    it('defaults to code 13 -> 500 when the thrown error is not an object', async () => {
+      memberGrpcService.resolveShotParticipants.mockReturnValueOnce(
+        throwError(() => 'a plain string rejection'),
+      );
+
+      await expect(
+        service.addShot(
+          { Id: 'target-id', amount: 5, reason: 'Testing' },
+          'Bearer signed-token',
+        ),
+      ).rejects.toMatchObject({
+        status: 500,
+        response: 'Could not validate shot participants',
+      });
+    });
+  });
+
+  describe('recentActivity - skip validation', () => {
+    beforeEach(() => {
+      prisma.add.findMany.mockResolvedValue([]);
+    });
+
+    it('defaults to 0 when skip is 0', async () => {
+      await service.recentActivity('Bearer signed-token', 0);
+      expect(prisma.add.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ skip: 0 }),
+      );
+    });
+
+    it('defaults to 0 when skip is negative', async () => {
+      await service.recentActivity('Bearer signed-token', -5);
+      expect(prisma.add.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ skip: 0 }),
+      );
+    });
+
+    it('defaults to 0 when skip is not an integer', async () => {
+      await service.recentActivity('Bearer signed-token', 1.5);
+      expect(prisma.add.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ skip: 0 }),
+      );
+    });
+  });
+
+  describe('recentActivity - member id handling', () => {
+    it('does not duplicate memberIds when acceptedId matches fromId or toId', async () => {
+      prisma.add.findMany.mockResolvedValueOnce([
+        {
+          id: 'shot-1',
+          fromId: 'member-1',
+          toId: 'member-2',
+          acceptedId: 'member-1', // same as fromId
+          amount: 2,
+          reason: 'Testing',
+          createdAt: new Date(),
+          status: approveStatus.APPROVED,
+        },
+      ]);
+      memberGrpcService.resolveMemberNames.mockReturnValueOnce(
+        of({
+          members: [
+            { id: 'member-1', name: 'Anna' },
+            { id: 'member-2', name: 'Erik' },
+          ],
+        }),
+      );
+
+      await service.recentActivity('Bearer signed-token');
+
+      expect(memberGrpcService.resolveMemberNames).toHaveBeenCalledWith(
+        { ids: ['member-1', 'member-2'] }, // not ['member-1','member-2','member-1']
+        expect.any(Metadata),
+      );
+    });
+
+    it('returns null (not a fallback string) when the reviewer name cannot be resolved', async () => {
+      prisma.add.findMany.mockResolvedValueOnce([
+        {
+          id: 'shot-1',
+          fromId: 'member-1',
+          toId: 'member-2',
+          acceptedId: 'missing-reviewer',
+          amount: 2,
+          reason: 'Testing',
+          createdAt: new Date(),
+          status: approveStatus.APPROVED,
+        },
+      ]);
+      memberGrpcService.resolveMemberNames.mockReturnValueOnce(
+        of({
+          members: [
+            { id: 'member-1', name: 'Anna' },
+            { id: 'member-2', name: 'Erik' },
+          ],
+        }),
+      );
+
+      const result = await service.recentActivity('Bearer signed-token');
+
+      expect(result[0].acceptedByName).toBeNull();
+    });
+  });
 });

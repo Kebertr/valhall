@@ -213,7 +213,11 @@ export class RedemptionService {
     }
 
     const memberIds = [
-      ...new Set(redemptions.map((redemption) => redemption.toId)),
+      ...new Set(
+        redemptions
+          .flatMap((r) => [r.toId, r.acceptedId])
+          .filter((id): id is string => id !== null),
+      ),
     ];
     const { members } = await firstValueFrom(
       this.memberService.resolveMemberNames({ ids: memberIds }, metadata),
