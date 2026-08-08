@@ -92,6 +92,19 @@ export class MemberService {
     return this.findCurrentMember(user);
   }
 
+  findCurrentProfile(user: AuthenticatedUser) {
+    return this.prisma.member.findUniqueOrThrow({
+      where: { keycloakId: user.keycloakId },
+      select: {
+        id: true,
+        name: true,
+        godname: true,
+        avatarUrl: true,
+        status: true,
+      },
+    });
+  }
+
   async resolveShotParticipants(
     targetMemberRecordId: string,
     user: AuthenticatedUser,

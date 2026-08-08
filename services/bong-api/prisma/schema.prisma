@@ -49,5 +49,6 @@ model BongBalance {
   totalAdded   Int      @default(0)
   totalTaken   Int      @default(0)
   totalPending Int      @default(0)
+  currentAmount Int     @default(0)
   updatedAt    DateTime @updatedAt
 }

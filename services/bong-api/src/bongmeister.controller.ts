@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Get,
   Headers,
   Param,
   Patch,
@@ -9,7 +10,7 @@ import {
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard, Role, Roles, RolesGuard } from '@valhall/auth';
 import { BongmeisterService } from './bongmeister.service';
-import { ModerateBongDto } from './dto/moderate-bong.dto';
+import { changeAmountDto, ModerateBongDto } from './dto/moderate-bong.dto';
 
 @Controller('bongmeister')
 @ApiTags('Bongmeister')
@@ -35,5 +36,19 @@ export class BongmeisterController {
     @Headers('authorization') authorization: string,
   ) {
     return this.bongmeisterService.moderateRedeem(id, body, authorization);
+  }
+
+  @Get('shot-targets')
+  getShotTargets(@Headers('authorization') authorization: string) {
+    return this.bongmeisterService.getShotTargets(authorization);
+  }
+
+  @Patch('change-amount/:id')
+  changeAmount(
+    @Param('id') id: string,
+    @Body() body: changeAmountDto,
+    @Headers('authorization') authorization: string,
+  ) {
+    return this.bongmeisterService.changeAmount(id, body.amount, authorization);
   }
 }

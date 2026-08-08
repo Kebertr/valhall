@@ -112,8 +112,7 @@ export class RedemptionService {
       }
 
       const available =
-        balance.totalAdded -
-        balance.totalTaken -
+        balance.currentAmount -
         balance.totalPending;
 
       if (available < body.bongAmount) {

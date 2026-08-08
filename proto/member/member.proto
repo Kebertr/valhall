@@ -4,13 +4,16 @@ package member;
 
 service MemberService {
   rpc ResolveShotParticipants(ResolveShotParticipantsRequest)
-      returns (ResolveShotParticipantsResponse);
+    returns (ResolveShotParticipantsResponse);
 
   rpc ResolveMemberNames(ResolveMemberNamesRequest)
-      returns (ResolveMemberNamesResponse);
+    returns (ResolveMemberNamesResponse);
 
   rpc ResolveCurrentMember(ResolveCurrentMemberRequest)
-      returns (ResolveCurrentMemberResponse);
+    returns (ResolveCurrentMemberResponse);
+
+  rpc ListShotTargets(ListShotTargetsRequest)
+    returns (ListShotTargetsResponse);
 }
 
 message ResolveShotParticipantsRequest {
@@ -39,6 +42,18 @@ message ResolveCurrentMemberRequest {}
 
 message ResolveCurrentMemberResponse {
   string id = 1;
+}
+
+message ListShotTargetsRequest {}
+
+message ShotTarget {
+  string id = 1;
+  string name = 2;
+  string godname = 3;
+}
+
+message ListShotTargetsResponse {
+  repeated ShotTarget members = 1;
 }
 
 service VideoService {

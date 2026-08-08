@@ -51,6 +51,12 @@ export class MemberController {
     return this.memberService.findShotTargets();
   }
 
+  @Get('me')
+  @UseGuards(JwtAuthGuard)
+  findCurrentMember(@CurrentUser() user: AuthenticatedUser) {
+    return this.memberService.findCurrentProfile(user);
+  }
+
   @Get('unlinked')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN, Role.ORDFORANDE)

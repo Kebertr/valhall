@@ -19,6 +19,11 @@ interface MemberGrpcService {
     request: Record<string, never>,
     metadata: Metadata,
   ): Observable<CurrentMember>;
+
+  ListShotTargets(
+    request: Record<string, never>,
+    metadata: Metadata,
+  ): Observable<{ members: { id: string; name: string, godname: string }[] }>;
 }
 
 @Injectable()
@@ -65,7 +70,7 @@ export class BongmeisterService {
       await base.bongBalance.upsert({
         where: { memberId: bong.toId },
         create: { memberId: bong.toId, totalAdded: finalAmount },
-        update: { totalAdded: { increment: finalAmount } },
+        update: { totalAdded: { increment: finalAmount }, currentAmount: { increment: finalAmount } },
       });
     }
     return {
@@ -128,8 +133,7 @@ export class BongmeisterService {
         finalAmount - redemption.amount;
 
       const available =
-        balance.totalAdded -
-        balance.totalTaken -
+        balance.currentAmount -
         balance.totalPending;
 
       if (approved && additionalAmount > 0 && available < additionalAmount) {
@@ -168,6 +172,9 @@ export class BongmeisterService {
             totalTaken: {
               increment: finalAmount,
             },
+            currentAmount: {
+              decrement: additionalAmount,
+            },
           },
         });
       } else {
@@ -191,6 +198,50 @@ export class BongmeisterService {
       isolationLevel: 'Serializable',
     });
   }
+
+  async getShotTargets(authorization: string) {
+    const metadata = new Metadata();
+    metadata.add("authorization", authorization);
+
+    const { members } = await firstValueFrom(
+      this.memberService.ListShotTargets({}, metadata),
+    );
+
+    const result: {
+      id: string;
+      name: string;
+      godname: string;
+      amount: number;
+    }[] = [];
+
+    for (const member of members) {
+      const balance = await this.prisma.bongBalance.findUnique({
+        where: {
+          memberId: member.id,
+        },
+      });
+
+      result.push({
+        ...member,
+        amount: balance
+          ? balance.currentAmount
+          : 0,
+          godname: member.godname ?? "",
+      });
+      }
+
+    return result;
+  }
+
+  async changeAmount(id: string, amount: number, authorization: string) {
+    await this.prisma.bongBalance.upsert({
+      where: { memberId: id },
+      create: { memberId: id, currentAmount: amount },
+      update: { currentAmount: amount },
+    });
+  }
+
+    
 
   private async resolveCurrentMember(authorization: string) {
     const metadata = new Metadata();

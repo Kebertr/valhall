@@ -51,6 +51,7 @@ export class BongService implements OnModuleInit {
   ) {
     const participants = await this.resolveParticipants(body.Id, authorization);
 
+    
     await this.prisma.add.create({
       data: {
         toId: participants.toId,

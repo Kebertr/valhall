@@ -17,3 +17,10 @@ export class ModerateBongDto {
   @ApiProperty({ example: 2, minimum: 1, required: false })
   amount?: number;
 }
+
+export class changeAmountDto {
+  @IsInt()
+  @Min(0)
+  @ApiProperty({ example: 2, minimum: 0 })
+  amount!: number;
+}
