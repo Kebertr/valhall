@@ -8,6 +8,8 @@ import Notifications from "./pages/Notifications";
 import Gudar from "./pages/Gudar";
 import LinkMember from "./pages/LinkMember";
 import MemberLinks from "./pages/MemberLinks";
+import Bongmeister from "./pages/Bongmeister";
+import { ProtectedRoute } from "./auth/protectedRoute";
 function App() {
   return (
     <BrowserRouter>
@@ -21,6 +23,14 @@ function App() {
         <Route path="/gudar" element={<Gudar />} />
         <Route path="/link-member" element={<LinkMember />} />
         <Route path="/member-links" element={<MemberLinks />} />
+        <Route
+          path="/bongmeister"
+          element={
+            <ProtectedRoute requiredRoles={["ADMIN", "BONGMEISTER"]}>
+              <Bongmeister />
+            </ProtectedRoute>
+          }
+        />
       </Routes>
     </BrowserRouter>
   );

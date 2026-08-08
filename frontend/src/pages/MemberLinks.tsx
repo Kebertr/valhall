@@ -3,6 +3,7 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { authFetch } from "../auth/authFetch";
 import LogoutButton from "../auth/LogoutButton";
 import { hasAnyRole } from "../auth/roles";
+import NavbarIdentity from "../components/NavbarIdentity";
 import valhallLogo from "../assets/valhall.jpg";
 
 type Member = {
@@ -115,15 +116,7 @@ export default function MemberLinks() {
         className={`fixed top-0 left-0 z-50 h-full w-72 bg-slate-800 shadow-2xl transition-transform duration-300 ${menuOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
         <div className="border-b border-slate-700 p-6">
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-600 font-bold">
-              R
-            </div>
-            <div>
-              <p className="font-semibold">Rasmus</p>
-              <p className="text-sm text-slate-400">ACTIVE</p>
-            </div>
-          </div>
+          <NavbarIdentity />
         </div>
 
         <nav className="flex flex-col p-4">
@@ -169,6 +162,14 @@ export default function MemberLinks() {
           >
             Notiser
           </button>
+          {hasAnyRole(["ADMIN", "BONGMEISTER"]) && (
+            <button
+              onClick={() => navigate("/bongmeister")}
+              className="rounded-xl p-3 text-left hover:bg-slate-700"
+            >
+              Bongmeister
+            </button>
+          )}
           <div className="mt-8 border-t border-slate-700 pt-4">
             <button
               onClick={() => navigate("/profile")}

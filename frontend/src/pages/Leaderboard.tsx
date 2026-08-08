@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import valhallLogo from "../assets/valhall.jpg";
 import LogoutButton from "../auth/LogoutButton";
 import { hasAnyRole } from "../auth/roles";
+import NavbarIdentity from "../components/NavbarIdentity";
 import { authFetch } from "../auth/authFetch";
 import { useEffect, useState } from "react";
 
@@ -60,15 +61,7 @@ function Leaderboard() {
         }`}
       >
         <div className="border-b border-slate-700 p-6">
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-600 font-bold">
-              R
-            </div>
-            <div>
-              <p className="font-semibold">Rasmus</p>
-              <p className="text-sm text-slate-400">ACTIVE</p>
-            </div>
-          </div>
+          <NavbarIdentity />
         </div>
 
         <nav className="flex flex-col p-4">
@@ -96,6 +89,14 @@ function Leaderboard() {
           >
             Gudar
           </button>
+          {hasAnyRole(["ADMIN", "BONGMEISTER"]) && (
+            <button
+              onClick={() => navigate("/bongmeister")}
+              className="rounded-xl p-3 text-left hover:bg-slate-700"
+            >
+              Bongmeister
+            </button>
+          )}
           {hasAnyRole(["ADMIN", "ORDFORANDE"]) && (
             <button
               onClick={() => navigate("/member-links")}
@@ -159,7 +160,7 @@ function Leaderboard() {
 
         <section className="rounded-3xl border border-blue-900/30 bg-slate-800/90 p-5 shadow-2xl">
           <h2 className="mb-5 text-2xl font-bold text-blue-400">
-            Bongar mottagna
+            Bongar tagna
           </h2>
           {entriesRedeem.map((entry, index) => (
             <div key={entry.name}>

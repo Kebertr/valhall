@@ -4,6 +4,7 @@ import { getKeycloak } from "../auth/keycloak";
 
 interface Props {
   requireAdmin?: boolean;
+  requiredRoles?: string[];
 }
 
 interface RealmAccessToken {
@@ -15,6 +16,7 @@ interface RealmAccessToken {
 export function ProtectedRoute({
   children,
   requireAdmin,
+  requiredRoles,
 }: PropsWithChildren<Props>) {
   const keycloak = getKeycloak();
 
@@ -23,12 +25,19 @@ export function ProtectedRoute({
     return <Navigate to="/login" replace />;
   }
 
-  if (requireAdmin) {
+  if (requireAdmin || requiredRoles?.length) {
     const roles =
       (keycloak.tokenParsed as RealmAccessToken | undefined)?.realm_access
         ?.roles ?? [];
+    const normalizedRoles = roles.map((role) => role.toUpperCase());
 
-    if (!roles.includes("admin")) {
+    const allowed = requireAdmin
+      ? normalizedRoles.includes("ADMIN")
+      : requiredRoles!.some((role) =>
+          normalizedRoles.includes(role.toUpperCase()),
+        );
+
+    if (!allowed) {
       return <Navigate to="/" replace />;
     }
   }

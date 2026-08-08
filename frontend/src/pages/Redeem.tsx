@@ -5,6 +5,7 @@ import { authFetch } from "../auth/authFetch";
 import { getKeycloak } from "../auth/keycloak";
 import LogoutButton from "../auth/LogoutButton";
 import { hasAnyRole } from "../auth/roles";
+import NavbarIdentity from "../components/NavbarIdentity";
 
 const apiUrl = import.meta.env.VITE_API_URL ?? "";
 
@@ -156,7 +157,7 @@ function Redeem() {
     event.preventDefault();
 
     if (!video) {
-      setSubmitError("Välj en video innan du skickar inlösningen.");
+      setSubmitError("Välj en video innan du skickar");
       return;
     }
 
@@ -232,13 +233,13 @@ function Redeem() {
         throw new Error("Den uppladdade videon kunde inte verifieras.");
       }
 
-      setSubmitMessage("Inlösningen skickades.");
+      setSubmitMessage("Din redemption är nu uppe och väntar på godkännande!");
       await fetchRecentRedemptions();
     } catch (error: unknown) {
       setSubmitError(
         error instanceof Error
           ? error.message
-          : "Kunde inte skicka inlösningen.",
+          : "Något gick fel i processen, kontakta Kebert",
       );
     } finally {
       setSubmitting(false);
@@ -319,15 +320,7 @@ function Redeem() {
         }`}
       >
         <div className="border-b border-slate-700 p-6">
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-600 font-bold">
-              R
-            </div>
-            <div>
-              <p className="font-semibold">Rasmus</p>
-              <p className="text-sm text-slate-400">ACTIVE</p>
-            </div>
-          </div>
+          <NavbarIdentity />
         </div>
 
         <nav className="flex flex-col p-4">
@@ -355,6 +348,14 @@ function Redeem() {
           >
             Gudar
           </button>
+          {hasAnyRole(["ADMIN", "BONGMEISTER"]) && (
+            <button
+              onClick={() => navigate("/bongmeister")}
+              className="rounded-xl p-3 text-left hover:bg-slate-700"
+            >
+              Bongmeister
+            </button>
+          )}
           {hasAnyRole(["ADMIN", "ORDFORANDE"]) && (
             <button
               onClick={() => navigate("/member-links")}

@@ -6,6 +6,7 @@ import { authFetch } from "../auth/authFetch";
 import LogoutButton from "../auth/LogoutButton";
 import { getKeycloak } from "../auth/keycloak";
 import { hasAnyRole } from "../auth/roles";
+import NavbarIdentity from "../components/NavbarIdentity";
 
 type Member = {
   id: string;
@@ -294,16 +295,7 @@ function AddShot() {
         }`}
       >
         <div className="border-b border-slate-700 p-6">
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-600 font-bold">
-              R
-            </div>
-
-            <div>
-              <p className="font-semibold">Rasmus</p>
-              <p className="text-sm text-slate-400">ACTIVE</p>
-            </div>
-          </div>
+          <NavbarIdentity />
         </div>
 
         <nav className="flex flex-col p-4">
@@ -334,6 +326,15 @@ function AddShot() {
           >
             Gudar
           </button>
+
+          {hasAnyRole(["ADMIN", "BONGMEISTER"]) && (
+            <button
+              onClick={() => navigate("/bongmeister")}
+              className="rounded-xl p-3 text-left hover:bg-slate-700"
+            >
+              Bongmeister
+            </button>
+          )}
 
           {hasAnyRole(["ADMIN", "ORDFORANDE"]) && (
             <button
