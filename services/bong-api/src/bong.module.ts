@@ -12,6 +12,8 @@ import { BongmeisterController } from './bongmeister.controller';
 import { BongmeisterService } from './bongmeister.service';
 import { LeaderboardService } from './leaderboard.service';
 import { LeaderboardController } from './leaderboard.controller';
+import { RecentService } from './recent.service';
+import { RecentController } from './recent.controller';
 
 @Module({
   imports: [
@@ -46,13 +48,14 @@ import { LeaderboardController } from './leaderboard.controller';
       },
     ]),
   ],
-  controllers: [BongController, RedemptionController, BongmeisterController, LeaderboardController],
+  controllers: [BongController, RedemptionController, BongmeisterController, LeaderboardController, RecentController],
   providers: [
     BongService,
     PrismaService,
     RedemptionService,
     BongmeisterService,
     LeaderboardService,
+    RecentService,
   ],
 })
 export class BongModule {}

@@ -139,7 +139,7 @@ function Home() {
       <main className="px-4 pt-16">
         <div className="rounded-3xl border border-blue-900/30 bg-slate-800/90 p-5 shadow-2xl">
           <h2 className="mb-6 text-3xl font-bold text-blue-400">
-            Recent Activity
+            Senaste aktivitet
           </h2>
 
           <div className="space-y-4">
@@ -229,7 +229,7 @@ function Home() {
               hover:bg-red-800
             "
           >
-            Lös in bong
+            Bli av med bong
           </button>
         </div>
       </div>

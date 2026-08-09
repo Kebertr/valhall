@@ -624,7 +624,7 @@ function AddShot() {
             hover:bg-red-800
           "
         >
-          Lös in bong
+          Bli av med bong
         </button>
       </div>
     </div>
