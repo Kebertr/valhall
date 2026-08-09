@@ -37,6 +37,10 @@ const devProxy = {
     target: "http://localhost:3001",
     changeOrigin: true,
   },
+  "/api/recent": {
+    target: "http://localhost:3001",
+    changeOrigin: true,
+  },
   "/api/files": {
     target: "http://localhost:3003",
     changeOrigin: true,
@@ -63,6 +67,10 @@ const previewProxy = {
     changeOrigin: true,
   },
   "/api/redemption": {
+    target: "http://bong-api:3001",
+    changeOrigin: true,
+  },
+  "/api/recent": {
     target: "http://bong-api:3001",
     changeOrigin: true,
   },

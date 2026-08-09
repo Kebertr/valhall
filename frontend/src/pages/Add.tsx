@@ -556,6 +556,10 @@ function AddShot() {
                   </p>
                 )}
 
+                <p className="mt-2 text-sm text-slate-400">
+                  {new Date(activity.createdAt).toLocaleString("sv-SE")}
+                </p>
+
                 {isBongmeister && activity.status === "PENDING" && (
                   <div className="mt-4 flex flex-wrap gap-2">
                     <button

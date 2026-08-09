@@ -410,11 +410,11 @@ function Redeem() {
           onSubmit={handleSubmit}
           className="rounded-3xl border border-red-900/30 bg-slate-800/90 p-5 shadow-2xl"
         >
-          <h2 className="mb-5 text-3xl font-bold text-red-400">Redeem bongs</h2>
+          <h2 className="mb-5 text-3xl font-bold text-red-400">Bli av med</h2>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block">
-              <span className="mb-2 block font-semibold">Bongs taken</span>
+              <span className="mb-2 block font-semibold">Bongar tagna</span>
               <input
                 type="number"
                 min="1"
@@ -425,7 +425,7 @@ function Redeem() {
             </label>
 
             <label className="block">
-              <span className="mb-2 block font-semibold">Add video</span>
+              <span className="mb-2 block font-semibold">Lägg till en video som bevis</span>
               <input
                 type="file"
                 accept="video/*"
@@ -440,7 +440,7 @@ function Redeem() {
             disabled={submitting}
             className="mt-5 w-full rounded-2xl bg-red-700 py-4 text-lg font-bold transition hover:bg-red-800"
           >
-            {submitting ? "Uploading video…" : "Send redemption"}
+            {submitting ? "Laddar upp videon" : "Skicka"}
           </button>
 
           {submitError && (
@@ -458,13 +458,13 @@ function Redeem() {
 
         <section className="rounded-3xl border border-blue-900/30 bg-slate-800/90 p-5 shadow-2xl">
           <h2 className="mb-5 text-2xl font-bold text-blue-400">
-            Senaste inlösningar
+            Aktivitetslista för bongar tagna
           </h2>
 
           {activityError && <p className="text-red-300">{activityError}</p>}
 
           {!activityError && redemptions.length === 0 && (
-            <p className="text-slate-400">Inga inlösningar har skickats ännu.</p>
+            <p className="text-slate-400">Ingen har velat bli av med en bong</p>
           )}
 
           <div className="space-y-4">
@@ -493,7 +493,7 @@ function Redeem() {
                     <span className="font-semibold">
                       {redemption.memberName}
                     </span>{" "}
-                    löste in {redemption.amount}{" "}
+                    Vill bli av med {redemption.amount}{" "}
                     {redemption.amount === 1 ? "bong" : "bongar"}
                   </p>
                   <p className="mt-1 text-sm text-slate-400">

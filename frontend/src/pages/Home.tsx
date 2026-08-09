@@ -1,25 +1,160 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import valhallLogo from ".././assets/valhall.jpg";
 import ".././App.css";
 import { useNavigate } from "react-router-dom";
 import LogoutButton from "../auth/LogoutButton";
 import { hasAnyRole } from "../auth/roles";
 import NavbarIdentity from "../components/NavbarIdentity";
+import { authFetch } from "../auth/authFetch";
+
+const apiUrl = import.meta.env.VITE_API_URL ?? "";
+
+type ActivityStatus = "PENDING" | "APPROVED" | "DENIED";
+
+type RecentActivity =
+  | {
+      type: "ADD";
+      fromName: string;
+      toName: string;
+      amount: number;
+      reason: string;
+      status: ActivityStatus;
+      createdAt: string;
+    }
+  | {
+      type: "REDEMPTION";
+      memberName: string;
+      amount: number;
+      videoId: string;
+      videoUrl: string | null;
+      status: ActivityStatus;
+      createdAt: string;
+    };
+
+type RecentActivitiesResponse = {
+  result: RecentActivity[];
+  oldestTimeStamp: { createdAt: string } | null;
+};
+
+const statusLabels: Record<ActivityStatus, string> = {
+  PENDING: "Väntar",
+  APPROVED: "Godkänd",
+  DENIED: "Nekad",
+};
 
 function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [activities, setActivities] = useState<RecentActivity[]>([]);
+  const [activityError, setActivityError] = useState<string | null>(null);
+  const [isLoadingActivities, setIsLoadingActivities] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [oldestTimeStamp, setOldestTimeStamp] = useState<string | null>(null);
+  const [selectedVideo, setSelectedVideo] = useState<
+    Extract<RecentActivity, { type: "REDEMPTION" }> | null
+  >(null);
   const navigate = useNavigate();
 
-  const activities = [
-    { text: "Anton gave Joel 2 shots" },
-    { text: "Rasmus redeemed 1 shot" },
-    { text: "Joel received 3 shots" },
-    { text: "Master approved Anton's redemption" },
-    { text: "Filip got 2 shots for being late" },
-    { text: "Joel redeemed 2 shots" },
-    { text: "Anton received 1 shot" },
-    { text: "Master denied a redemption request" },
-  ];
+  async function addPlaybackUrls(items: RecentActivity[]) {
+    const requests: Promise<RecentActivity>[] = [];
+
+    for (const activity of items) {
+      if (activity.type === "ADD") {
+        requests.push(Promise.resolve(activity));
+        continue;
+      }
+
+      requests.push(
+        (async () => {
+          const response = await authFetch(
+            `${apiUrl}/api/files/${encodeURIComponent(activity.videoId)}/playback-url`,
+          );
+
+          if (response.status === 404) {
+            return { ...activity, videoUrl: null };
+          }
+
+          if (!response.ok) {
+            throw new Error("Kunde inte hämta videon");
+          }
+
+          const { videoUrl } = (await response.json()) as {
+            videoUrl: string;
+          };
+
+          return { ...activity, videoUrl };
+        })(),
+      );
+    }
+
+    return Promise.all(requests);
+  }
+
+  useEffect(() => {
+    let active = true;
+
+    async function fetchRecentActivities() {
+      try {
+        const response = await authFetch("/api/recent/activities");
+
+        if (!response.ok) {
+          throw new Error("Kunde inte hämta senaste aktivitet");
+        }
+
+        const data = (await response.json()) as RecentActivitiesResponse;
+        const activitiesWithVideos = await addPlaybackUrls(data.result);
+        if (active) {
+          setActivities(activitiesWithVideos);
+          setOldestTimeStamp(data.oldestTimeStamp?.createdAt ?? null);
+        }
+      } catch (error) {
+        if (active) {
+          setActivityError(
+            error instanceof Error
+              ? error.message
+              : "Kunde inte hämta senaste aktivitet",
+          );
+        }
+      } finally {
+        if (active) setIsLoadingActivities(false);
+      }
+    }
+
+    void fetchRecentActivities();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  async function handleLoadMore() {
+    if (!oldestTimeStamp || isLoadingMore) return;
+
+    try {
+      setIsLoadingMore(true);
+      setActivityError(null);
+
+      const response = await authFetch(
+        `/api/recent/activities?timestamp=${encodeURIComponent(oldestTimeStamp)}`,
+      );
+
+      if (!response.ok) {
+        throw new Error("Kunde inte hämta fler aktiviteter");
+      }
+
+      const data = (await response.json()) as RecentActivitiesResponse;
+      const activitiesWithVideos = await addPlaybackUrls(data.result);
+      setActivities((current) => [...current, ...activitiesWithVideos]);
+      setOldestTimeStamp(data.oldestTimeStamp?.createdAt ?? null);
+    } catch (error) {
+      setActivityError(
+        error instanceof Error
+          ? error.message
+          : "Kunde inte hämta fler aktiviteter",
+      );
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white pb-24">
@@ -142,45 +277,130 @@ function Home() {
             Senaste aktivitet
           </h2>
 
+          {isLoadingActivities && (
+            <p className="text-slate-400">Laddar senaste aktivitet...</p>
+          )}
+
+          {activityError && <p className="text-red-300">{activityError}</p>}
+
+          {!isLoadingActivities && !activityError && activities.length === 0 && (
+            <p className="text-slate-400">Det finns ingen aktivitet ännu.</p>
+          )}
+
           <div className="space-y-4">
             {activities.map((activity, index) => (
-              <div
-                key={index}
-                className="
-                  flex
-                  items-center
-                  gap-4
-                  rounded-2xl
-                  bg-slate-700/70
-                  p-5
-                  transition
-                  hover:bg-slate-700
-                "
+              <article
+                key={`${activity.type}-${activity.createdAt}-${index}`}
+                className="flex flex-wrap items-center gap-4 rounded-2xl bg-slate-700/70 p-5 transition hover:bg-slate-700"
               >
-                <span className="text-lg">{activity.text}</span>
-              </div>
+                {activity.type === "REDEMPTION" && activity.videoUrl && (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedVideo(activity)}
+                    className="shrink-0 overflow-hidden rounded-xl bg-black ring-1 ring-slate-600 transition hover:ring-blue-400"
+                    aria-label={`Visa video från ${activity.memberName}`}
+                  >
+                    <video
+                      src={activity.videoUrl}
+                      muted
+                      preload="metadata"
+                      playsInline
+                      className="h-20 w-28 object-cover"
+                    />
+                  </button>
+                )}
+
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start justify-between gap-4">
+                  <p className="text-lg">
+                    {activity.type === "ADD" ? (
+                      <>
+                        <span className="font-semibold">
+                          {activity.fromName}
+                        </span>
+                        {" gav "}
+                        <span className="font-semibold">
+                          {activity.toName}
+                        </span>
+                        {` ${activity.amount} ${activity.amount === 1 ? "bong" : "bongar"}`}
+                      </>
+                    ) : (
+                      <>
+                        <span className="font-semibold">
+                          {activity.memberName}
+                        </span>
+                        {` vill bli av med ${activity.amount} ${activity.amount === 1 ? "bong" : "bongar"}`}
+                      </>
+                    )}
+                  </p>
+
+                  <span
+                    className={`shrink-0 font-semibold ${
+                      activity.type === "ADD"
+                        ? "text-blue-300"
+                        : "text-red-300"
+                    }`}
+                  >
+                    {statusLabels[activity.status]}
+                  </span>
+                  </div>
+
+                  {activity.type === "ADD" && activity.reason && (
+                    <p className="mt-1 text-sm text-slate-400">
+                      {activity.reason}
+                    </p>
+                  )}
+
+                  <p className="mt-2 text-sm text-slate-400">
+                    {new Date(activity.createdAt).toLocaleString("sv-SE")}
+                  </p>
+                </div>
+              </article>
             ))}
           </div>
 
-          <button
-            className="
-              mt-5
-              w-full
-              rounded-2xl
-              border
-              border-blue-500
-              py-4
-              text-lg
-              font-bold
-              text-blue-500
-              transition
-              hover:bg-blue-500/10
-            "
-          >
-            View More
-          </button>
+          {oldestTimeStamp && (
+            <button
+              type="button"
+              onClick={() => void handleLoadMore()}
+              disabled={isLoadingMore}
+              className="mt-5 w-full rounded-2xl border border-blue-500 py-4 text-lg font-bold text-blue-400 transition hover:bg-blue-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isLoadingMore ? "Laddar..." : "Visa fler"}
+            </button>
+          )}
         </div>
       </main>
+
+      {selectedVideo?.videoUrl && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/85 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Video från ${selectedVideo.memberName}`}
+          onClick={() => setSelectedVideo(null)}
+        >
+          <div
+            className="relative w-full max-w-4xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setSelectedVideo(null)}
+              className="absolute -top-12 right-0 rounded-lg bg-slate-800 px-4 py-2 font-semibold hover:bg-slate-700"
+            >
+              Stäng
+            </button>
+            <video
+              src={selectedVideo.videoUrl}
+              controls
+              autoPlay
+              playsInline
+              className="max-h-[80vh] w-full rounded-2xl bg-black"
+            />
+          </div>
+        </div>
+      )}
 
       {/* Bottom Action Bar */}
       <div
