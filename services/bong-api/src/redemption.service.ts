@@ -111,16 +111,6 @@ export class RedemptionService {
         );
       }
 
-      const available =
-        balance.currentAmount -
-        balance.totalPending;
-
-      if (available < body.bongAmount) {
-        throw new ConflictException(
-          'Insufficient balance for redemption',
-        );
-      }
-
       await base.bongBalance.update({
         where: {
           memberId: member.id,

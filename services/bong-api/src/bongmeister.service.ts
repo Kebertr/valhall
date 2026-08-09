@@ -132,13 +132,20 @@ export class BongmeisterService {
       const additionalAmount =
         finalAmount - redemption.amount;
 
+      const availableForThisRedemption =
+        balance.currentAmount -
+        (balance.totalPending - redemption.amount);
+
+      if (approved && finalAmount > availableForThisRedemption) {
+        throw new ConflictException("För lite saldo");
+      }
       const available =
         balance.currentAmount -
         balance.totalPending;
 
       if (approved && additionalAmount > 0 && available < additionalAmount) {
         throw new ConflictException(
-          'Insufficient balance',
+          'För lite saldo',
         );
       }
       const statusUpdate = await base.redemption.updateMany({
@@ -173,7 +180,7 @@ export class BongmeisterService {
               increment: finalAmount,
             },
             currentAmount: {
-              decrement: additionalAmount,
+              decrement: finalAmount,
             },
           },
         });

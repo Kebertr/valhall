@@ -202,8 +202,12 @@ describe('BongmeisterService', () => {
           create: {
             memberId: pendingBong.toId,
             totalAdded: pendingBong.amount,
+            currentAmount: pendingBong.amount,
           },
-          update: { totalAdded: { increment: pendingBong.amount } },
+          update: {
+            totalAdded: { increment: pendingBong.amount },
+            currentAmount: { increment: pendingBong.amount },
+          },
         });
       });
 
@@ -222,8 +226,15 @@ describe('BongmeisterService', () => {
 
         expect(prisma.bongBalance.upsert).toHaveBeenCalledWith(
           expect.objectContaining({
-            create: { memberId: pendingBong.toId, totalAdded: 10 },
-            update: { totalAdded: { increment: 10 } },
+            create: {
+              memberId: pendingBong.toId,
+              totalAdded: 10,
+              currentAmount: 10,
+            },
+            update: {
+              totalAdded: { increment: 10 },
+              currentAmount: { increment: 10 },
+            },
           }),
         );
       });
@@ -261,6 +272,7 @@ describe('BongmeisterService', () => {
       totalAdded: 20,
       totalTaken: 0,
       totalPending: 5,
+      currentAmount: 20,
     };
 
     beforeEach(() => {
@@ -295,6 +307,7 @@ describe('BongmeisterService', () => {
         data: {
           totalPending: { decrement: pendingRedemption.amount },
           totalTaken: { increment: pendingRedemption.amount },
+          currentAmount: { decrement: pendingRedemption.amount },
         },
       });
     });
