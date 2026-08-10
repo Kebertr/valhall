@@ -19,24 +19,29 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.17.0
+
       - name: Setup Node
         uses: actions/setup-node@v5
         with:
           node-version: 24
-          cache: npm
-          cache-dependency-path: package-lock.json
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Lint frontend
-        run: npm run lint --workspace=frontend
+        run: pnpm --filter frontend lint
 
       - name: Test frontend
-        run: npm test --workspace=frontend -- --run
+        run: pnpm --filter frontend test -- --run
 
       - name: Build frontend
-        run: npm run build --workspace=frontend
+        run: pnpm --filter frontend build
 
   backend:
     name: Backend checks
@@ -46,40 +51,49 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.17.0
+
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 24
-          cache: npm
-          cache-dependency-path: package-lock.json
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Generate Prisma clients
         run: |
-          npm exec --workspace=bong-api -- prisma generate
-          npm exec --workspace=member-api -- prisma generate
+          pnpm --filter bong-api exec prisma generate
+          pnpm --filter member-api exec prisma generate
 
       - name: Build shared auth package
-        run: npm run build:auth
+        run: pnpm build:auth
 
       - name: Lint bong API
-        run: npm run lint --workspace=bong-api
+        run: pnpm --filter bong-api lint
 
       - name: Test bong API
-        run: npm test --workspace=bong-api
+        run: pnpm --filter bong-api test
 
       - name: Lint member API
-        run: npm run lint --workspace=member-api
+        run: pnpm --filter member-api lint
 
-      
-      #- name: Test backend
-      #  working-directory: services/member-api
-      #  run: npm test
+      - name: Test bong API
+        run: pnpm --filter bong-api test
+
+      - name: Lint member API
+        run: pnpm --filter member-api lint
+
+      - name: Test bong API
+        run: pnpm --filter bong-api test
       
       - name: Build backend workspaces
-        run: npm run build
+        run: pnpm build
 
   docker-images:
     name: Build and push Docker images
@@ -125,7 +139,7 @@ jobs:
           VITE_KEYCLOAK_REALM=valhall
           
 
-          if echo "$CHANGED" | grep -Eq '^(frontend/|package.json|package-lock.json)'; then
+          if echo "$CHANGED" | grep -Eq '^(frontend/|package.json|pnpm-lock.yaml)'; then
             docker build \
               --build-arg VITE_API_URL=$VITE_API_URL \
               --build-arg VITE_KEYCLOAK_URL=$VITE_KEYCLOAK_URL \
@@ -137,7 +151,7 @@ jobs:
             docker push ghcr.io/kebertr/valhall-frontend:${IMAGE_TAG}
           fi
 
-          if echo "$CHANGED" | grep -Eq '^(services/bong-api/|package.json|package-lock.json)'; then
+          if echo "$CHANGED" | grep -Eq '^(services/bong-api/|package.json|pnpm-lock.yaml)'; then
             docker build \
               -f services/bong-api/Dockerfile \
               -t ghcr.io/kebertr/valhall-bong-api:${IMAGE_TAG} \
@@ -145,7 +159,7 @@ jobs:
             docker push ghcr.io/kebertr/valhall-bong-api:${IMAGE_TAG}
           fi
 
-          if echo "$CHANGED" | grep -Eq '^(services/member-api/|packages/auth/|package.json|package-lock.json)'; then
+          if echo "$CHANGED" | grep -Eq '^(services/member-api/|packages/auth/|package.json|pnpm-lock.yaml)'; then
             docker build \
               -f services/member-api/Dockerfile \
               -t ghcr.io/kebertr/valhall-member-api:${IMAGE_TAG} \

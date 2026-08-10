@@ -126,12 +126,15 @@ export class BongmeisterService {
         );
       }
 
+      //Final amount is number of bongs that is being taken
       const finalAmount =
         body.amount ?? redemption.amount;
 
+      //Additional amounts is number of bongs that are changed by bongmeister
       const additionalAmount =
         finalAmount - redemption.amount;
 
+      //Chekc so the balance can't be negative
       const availableForThisRedemption =
         balance.currentAmount -
         (balance.totalPending - redemption.amount);
