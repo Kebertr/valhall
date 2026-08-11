@@ -1,10 +1,7 @@
 import { useEffect, useState } from "react";
-import valhallLogo from ".././assets/valhall.jpg";
 import ".././App.css";
 import { useNavigate } from "react-router-dom";
-import LogoutButton from "../auth/LogoutButton";
-import { hasAnyRole } from "../auth/roles";
-import NavbarIdentity from "../components/NavbarIdentity";
+import Navbar from "../components/Navbar";
 import { authFetch } from "../auth/authFetch";
 
 const apiUrl = import.meta.env.VITE_API_URL ?? "";
@@ -42,8 +39,13 @@ const statusLabels: Record<ActivityStatus, string> = {
   DENIED: "Nekad",
 };
 
+const statusTextColors: Record<ActivityStatus, string> = {
+  APPROVED: "text-green-300",
+  PENDING: "text-white",
+  DENIED: "text-red-300",
+};
+
 function Home() {
-  const [menuOpen, setMenuOpen] = useState(false);
   const [activities, setActivities] = useState<RecentActivity[]>([]);
   const [activityError, setActivityError] = useState<string | null>(null);
   const [isLoadingActivities, setIsLoadingActivities] = useState(true);
@@ -54,44 +56,49 @@ function Home() {
   >(null);
   const navigate = useNavigate();
 
-  async function addPlaybackUrls(items: RecentActivity[]) {
-    const requests: Promise<RecentActivity>[] = [];
+  async function addPlaybackUrls(recent: RecentActivity[]) {
+    const result: RecentActivity[] = [];
 
-    for (const activity of items) {
+    for (const activity of recent) {
       if (activity.type === "ADD") {
-        requests.push(Promise.resolve(activity));
+        result.push(activity);
         continue;
       }
 
-      requests.push(
-        (async () => {
-          const response = await authFetch(
-            `${apiUrl}/api/files/${encodeURIComponent(activity.videoId)}/playback-url`,
-          );
+      try {
+        const response = await authFetch(
+          `${apiUrl}/api/files/${encodeURIComponent(activity.videoId)}/playback-url`,
+        );
 
-          if (response.status === 404) {
-            return { ...activity, videoUrl: null };
-          }
+        if (!response.ok) {
+          result.push({
+            ...activity,
+            videoUrl: null,
+          });
 
-          if (!response.ok) {
-            throw new Error("Kunde inte hämta videon");
-          }
+          continue;
+        }
 
-          const { videoUrl } = (await response.json()) as {
-            videoUrl: string;
-          };
+        const data = (await response.json()) as {
+          videoUrl: string;
+        };
 
-          return { ...activity, videoUrl };
-        })(),
-      );
+        result.push({
+          ...activity,
+          videoUrl: data.videoUrl,
+        });
+      } catch {
+        result.push({
+          ...activity,
+          videoUrl: null,
+        });
+      }
     }
 
-    return Promise.all(requests);
+    return result;
   }
 
   useEffect(() => {
-    let active = true;
-
     async function fetchRecentActivities() {
       try {
         const response = await authFetch("/api/recent/activities");
@@ -102,28 +109,23 @@ function Home() {
 
         const data = (await response.json()) as RecentActivitiesResponse;
         const activitiesWithVideos = await addPlaybackUrls(data.result);
-        if (active) {
-          setActivities(activitiesWithVideos);
-          setOldestTimeStamp(data.oldestTimeStamp?.createdAt ?? null);
-        }
+
+        setActivities(activitiesWithVideos);
+        setOldestTimeStamp(data.oldestTimeStamp?.createdAt ?? null);
       } catch (error) {
-        if (active) {
+        if (error instanceof Error){
+          setActivityError(error.message)
+        }else{
           setActivityError(
-            error instanceof Error
-              ? error.message
-              : "Kunde inte hämta senaste aktivitet",
+              "Kunde inte hämta senaste aktivitet",
           );
         }
       } finally {
-        if (active) setIsLoadingActivities(false);
+        setIsLoadingActivities(false);
       }
     }
 
     void fetchRecentActivities();
-
-    return () => {
-      active = false;
-    };
   }, []);
 
   async function handleLoadMore() {
@@ -146,11 +148,13 @@ function Home() {
       setActivities((current) => [...current, ...activitiesWithVideos]);
       setOldestTimeStamp(data.oldestTimeStamp?.createdAt ?? null);
     } catch (error) {
-      setActivityError(
-        error instanceof Error
-          ? error.message
-          : "Kunde inte hämta fler aktiviteter",
-      );
+      if (error instanceof Error){
+          setActivityError(error.message)
+        }else{
+          setActivityError(
+              "Kunde inte hämta fler aktiviteter",
+          );
+        }
     } finally {
       setIsLoadingMore(false);
     }
@@ -158,119 +162,8 @@ function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white pb-24">
-      {/* Overlay */}
-      {menuOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/60"
-          onClick={() => setMenuOpen(false)}
-        />
-      )}
+      <Navbar />
 
-      {/* Sidebar */}
-      <div
-        className={`fixed top-0 left-0 z-50 h-full w-72 bg-slate-800 shadow-2xl transition-transform duration-300 ${
-          menuOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
-      >
-        <div className="border-b border-slate-700 p-6">
-          <NavbarIdentity />
-        </div>
-
-        <nav className="flex flex-col p-4">
-          <button
-            aria-label="Add shot from menu"
-            onClick={() => navigate("/add")}
-            className="rounded-xl p-3 text-left hover:bg-slate-700"
-          >
-            Ge bong
-          </button>
-
-          <button
-            onClick={() => navigate("/redeem")}
-            className="rounded-xl p-3 text-left hover:bg-slate-700"
-          >
-            Bli av med bong
-          </button>
-
-          <button
-            onClick={() => navigate("/leaderboard")}
-            className="rounded-xl p-3 text-left hover:bg-slate-700"
-          >
-            Topplista
-          </button>
-
-          <button
-            onClick={() => navigate("/gudar")}
-            className="rounded-xl p-3 text-left hover:bg-slate-700"
-          >
-            Gudar
-          </button>
-
-          {hasAnyRole(["ADMIN", "BONGMEISTER"]) && (
-            <button
-              onClick={() => navigate("/bongmeister")}
-              className="rounded-xl p-3 text-left hover:bg-slate-700"
-            >
-              Bongmeister
-            </button>
-          )}
-
-          {hasAnyRole(["ADMIN", "ORDFORANDE"]) && (
-            <button
-              onClick={() => navigate("/member-links")}
-              className="rounded-xl p-3 text-left hover:bg-slate-700"
-            >
-              Medlemslänkar
-            </button>
-          )}
-
-          <button
-            onClick={() => navigate("/notifications")}
-            className="rounded-xl p-3 text-left hover:bg-slate-700"
-          >
-            Notiser
-          </button>
-
-          <div className="mt-8 border-t border-slate-700 pt-4">
-            <button
-              onClick={() => navigate("/profile")}
-              className="w-full rounded-xl p-3 text-left hover:bg-slate-700"
-            >
-              Redigera profil
-            </button>
-
-            <LogoutButton className="w-full rounded-xl p-3 text-left hover:bg-slate-700" />
-          </div>
-        </nav>
-      </div>
-
-      {/* Header */}
-      <header className="sticky top-0 z-30 border-b border-slate-800 bg-slate-950/90 backdrop-blur">
-        <div className="relative flex min-h-[160px] items-start p-4">
-          {/* Menu Button */}
-          <button
-            onClick={() => setMenuOpen(true)}
-            className="z-10 rounded-lg p-2 text-2xl hover:bg-slate-800"
-          >
-            ☰
-          </button>
-
-          {/* Centered Logo + Title */}
-          <div className="absolute left-1/2 top-4 flex -translate-x-1/2 flex-col items-center">
-            <img
-              src={valhallLogo}
-              alt="Valhall Logo"
-              className="h-24 w-auto object-contain"
-            />
-
-            <h1 className="mt-2 text-3xl font-bold tracking-wider text-blue-500">
-              Valhall
-            </h1>
-          </div>
-        </div>
-      </header>
-
-      {/* Main */}
       <main className="px-4 pt-16">
         <div className="rounded-3xl border border-blue-900/30 bg-slate-800/90 p-5 shadow-2xl">
           <h2 className="mb-6 text-3xl font-bold text-blue-400">
@@ -310,6 +203,7 @@ function Home() {
                   </button>
                 )}
 
+                {/*Add and redemption will look different*/}
                 <div className="min-w-0 flex-1">
                   <div className="flex items-start justify-between gap-4">
                   <p className="text-lg">
@@ -335,14 +229,9 @@ function Home() {
                   </p>
 
                   <span
-                    className={`shrink-0 font-semibold ${
-                      activity.type === "ADD"
-                        ? "text-blue-300"
-                        : "text-red-300"
-                    }`}
-                  >
-                    {statusLabels[activity.status]}
-                  </span>
+                      className={`shrink-0 font-semibold ${statusTextColors[activity.status]}`}>
+                      {statusLabels[activity.status]}
+                    </span>
                   </div>
 
                   {activity.type === "ADD" && activity.reason && (

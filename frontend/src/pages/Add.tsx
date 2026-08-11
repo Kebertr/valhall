@@ -1,12 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import valhallLogo from "../assets/valhall.jpg";
+import { useEffect, useMemo, useState } from "react";
 import "../App.css";
 import { useNavigate } from "react-router-dom";
 import { authFetch } from "../auth/authFetch";
-import LogoutButton from "../auth/LogoutButton";
+import Navbar from "../components/Navbar";
 import { getKeycloak } from "../auth/keycloak";
-import { hasAnyRole } from "../auth/roles";
-import NavbarIdentity from "../components/NavbarIdentity";
 
 type Member = {
   id: string;
@@ -43,7 +40,12 @@ function activityStatus(activity: RecentActivity) {
 }
 
 async function getRecentActivity(skip = 0) {
-  const url = skip > 0 ? `/api/add/recent?skip=${skip}` : "/api/add/recent";
+  let url;
+  if (skip > 0){
+    url = `/api/add/recent?skip=${skip}`
+  }else{
+    url = "/api/add/recent"
+  }
   const response = await authFetch(url);
 
   if (!response.ok) {
@@ -54,7 +56,6 @@ async function getRecentActivity(skip = 0) {
 }
 
 function AddShot() {
-  const [menuOpen, setMenuOpen] = useState(false);
   const [amount, setAmount] = useState(1);
   const [reason, setReason] = useState("");
   const [members, setMembers] = useState<Member[]>([]);
@@ -76,23 +77,7 @@ function AddShot() {
     ["ADMIN", "BONGMEISTER"].includes(role.toUpperCase()),
   );
 
-  const fetchRecentActivity = useCallback(async () => {
-    try {
-      const recentActivity = await getRecentActivity();
-      setActivityError(null);
-      setActivities(recentActivity);
-    } catch (error) {
-      setActivityError(
-        error instanceof Error
-          ? error.message
-          : "Could not fetch recent activity",
-      );
-    }
-  }, []);
-
   useEffect(() => {
-    let active = true;
-
     async function fetchMembers() {
       try {
         const response = await authFetch("/api/members/shot-targets");
@@ -101,53 +86,53 @@ function AddShot() {
 
         const data = (await response.json()) as Member[];
 
-        if (active) {
           setMembers(data);
-        }
       } catch (error) {
-        if (active) {
+        if (error instanceof Error){
+            setMembersError(error.message)
+        }else{
           setMembersError(
-            error instanceof Error ? error.message : "Could not fetch members",
+              "Kunde inte ladda in medlem",
           );
         }
       } finally {
-        if (active) {
-          setIsLoadingMembers(false);
-        }
+        setIsLoadingMembers(false);
       }
     }
 
-    fetchMembers();
-
-    return () => {
-      active = false;
-    };
+    void fetchMembers();
   }, []);
 
   useEffect(() => {
-    let active = true;
-
     getRecentActivity()
       .then((recentActivity) => {
-        if (active) {
           setActivityError(null);
           setActivities(recentActivity);
-        }
       })
-      .catch((error: unknown) => {
-        if (active) {
-          setActivityError(
-            error instanceof Error
-              ? error.message
-              : "Could not fetch recent activity",
-          );
-        }
+      .catch((error) => {
+          if (error instanceof Error){
+            setActivityError(error.message)
+          }else{
+            setActivityError(
+                "Kunde inte hämta senaste aktivitet",
+            );
+          }
       });
-
-    return () => {
-      active = false;
-    };
   }, []);
+
+  async function refreshRecentActivity() {
+    try {
+      const recentActivity = await getRecentActivity();
+      setActivityError(null);
+      setActivities(recentActivity);
+    } catch (error) {
+      setActivityError(
+        error instanceof Error
+          ? error.message
+          : "Kunde inte hämta senaste aktivitet",
+      );
+    }
+  }
 
   const matchingMembers = useMemo(() => {
     const query = memberQuery.trim().toLocaleLowerCase();
@@ -175,11 +160,13 @@ function AddShot() {
         window.alert("Det finns inga fler aktiviteter.");
       }
     } catch (error) {
-      setActivityError(
-        error instanceof Error
-          ? error.message
-          : "Kunde inte hämta fler aktiviteter",
-      );
+      if (error instanceof Error){
+        setActivityError(error.message)
+      }else{
+        setActivityError(
+          "Kunde inte hämta senaste aktivitet",
+        );
+      }
     } finally {
       setIsLoadingMoreActivities(false);
     }
@@ -188,14 +175,16 @@ function AddShot() {
   async function moderateActivity(
     activity: RecentActivity,
     action: "APPROVE" | "REJECT",
-    amount?: number,
+    reviewedAmount?: number,
   ) {
     const response = await authFetch(`/api/bongmeister/${activity.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         action,
-        ...(amount !== undefined ? { amount } : {}),
+        ...(reviewedAmount !== undefined
+          ? { amount: reviewedAmount }
+          : {}),
       }),
     });
 
@@ -203,7 +192,11 @@ function AddShot() {
       const body = (await response.json().catch(() => null)) as {
         message?: string;
       } | null;
-      window.alert(body?.message ?? "Kunde inte hantera bongen.");
+      if (body?.message){
+        window.alert(body?.message)
+      }else{
+        window.alert("Kunde inte hantera bongen")
+      }
       return;
     }
 
@@ -226,13 +219,13 @@ function AddShot() {
     const amountText = window.prompt("Antal", String(activity.amount));
     if (amountText === null) return;
 
-    const amount = Number(amountText);
-    if (!Number.isInteger(amount) || amount < 1) {
+    const reviewedAmount = Number(amountText);
+    if (!Number.isInteger(reviewedAmount) || reviewedAmount < 1) {
       window.alert("Antal måste vara ett heltal på minst 1.");
       return;
     }
 
-    void moderateActivity(activity, "APPROVE", amount);
+    void moderateActivity(activity, "APPROVE", reviewedAmount);
   }
 
   async function handleAddShot() {
@@ -271,131 +264,24 @@ function AddShot() {
       setAmount(1);
       setReason("");
       setSubmitMessage("Shot added.");
-      void fetchRecentActivity();
+      await refreshRecentActivity();
     } catch (error) {
-      setSubmitMessage(
-        error instanceof Error ? error.message : "Could not add shot",
-      );
+      if (error instanceof Error){
+        setSubmitMessage(error.message)
+      }else{
+        setSubmitMessage(
+            "Kunde inte addera bongen",
+        );
+      }
     }
   }
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white pb-24">
-      {/* Overlay */}
-      {menuOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/60"
-          onClick={() => setMenuOpen(false)}
-        />
-      )}
+      <Navbar />
 
-      {/* Sidebar */}
-      <div
-        className={`fixed top-0 left-0 z-50 h-full w-72 bg-slate-800 shadow-2xl transition-transform duration-300 ${
-          menuOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
-      >
-        <div className="border-b border-slate-700 p-6">
-          <NavbarIdentity />
-        </div>
-
-        <nav className="flex flex-col p-4">
-          <button
-            onClick={() => navigate("/")}
-            className="rounded-xl p-3 text-left hover:bg-slate-700"
-          >
-            Hem
-          </button>
-
-          <button
-            onClick={() => navigate("/redeem")}
-            className="rounded-xl p-3 text-left hover:bg-slate-700"
-          >
-            Bli av med bong
-          </button>
-
-          <button
-            onClick={() => navigate("/leaderboard")}
-            className="rounded-xl p-3 text-left hover:bg-slate-700"
-          >
-            Topplista
-          </button>
-
-          <button
-            onClick={() => navigate("/gudar")}
-            className="rounded-xl p-3 text-left hover:bg-slate-700"
-          >
-            Gudar
-          </button>
-
-          {hasAnyRole(["ADMIN", "BONGMEISTER"]) && (
-            <button
-              onClick={() => navigate("/bongmeister")}
-              className="rounded-xl p-3 text-left hover:bg-slate-700"
-            >
-              Bongmeister
-            </button>
-          )}
-
-          {hasAnyRole(["ADMIN", "ORDFORANDE"]) && (
-            <button
-              onClick={() => navigate("/member-links")}
-              className="rounded-xl p-3 text-left hover:bg-slate-700"
-            >
-              Medlemslänkar
-            </button>
-          )}
-
-          <button
-            onClick={() => navigate("/notifications")}
-            className="rounded-xl p-3 text-left hover:bg-slate-700"
-          >
-            Notiser
-          </button>
-
-          <div className="mt-8 border-t border-slate-700 pt-4">
-            <button
-              onClick={() => navigate("/profile")}
-              className="w-full rounded-xl p-3 text-left hover:bg-slate-700"
-            >
-              Redigera profil
-            </button>
-
-            <LogoutButton className="w-full rounded-xl p-3 text-left hover:bg-slate-700" />
-          </div>
-        </nav>
-      </div>
-
-      {/* Header */}
-      <header className="sticky top-0 z-30 border-b border-slate-800 bg-slate-950/90 backdrop-blur">
-        <div className="relative flex min-h-[160px] items-start p-4">
-          <button
-            onClick={() => setMenuOpen(true)}
-            className="z-10 rounded-lg p-2 text-2xl hover:bg-slate-800"
-          >
-            ☰
-          </button>
-
-          <div className="absolute left-1/2 top-4 flex -translate-x-1/2 flex-col items-center">
-            <img
-              src={valhallLogo}
-              alt="Valhall Logo"
-              className="h-24 w-auto object-contain"
-            />
-
-            <h1 className="mt-2 text-3xl font-bold tracking-wider text-blue-500">
-              Valhall
-            </h1>
-          </div>
-        </div>
-      </header>
-
-      {/* Main */}
       <main className="px-4 pt-16">
         <div className="rounded-3xl border border-blue-900/30 bg-slate-800/90 p-5 shadow-2xl">
           <h2 className="mb-6 text-3xl font-bold text-blue-400">Ge bong</h2>
-
-          {/* Member */}
-
           <div className="relative mb-5">
             <label className="mb-2 block text-lg font-semibold">Medlem</label>
 

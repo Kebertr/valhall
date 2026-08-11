@@ -1,11 +1,8 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import valhallLogo from "../assets/valhall.jpg";
 import { authFetch } from "../auth/authFetch";
+import Navbar from "../components/Navbar";
 import { getKeycloak } from "../auth/keycloak";
-import LogoutButton from "../auth/LogoutButton";
-import { hasAnyRole } from "../auth/roles";
-import NavbarIdentity from "../components/NavbarIdentity";
 
 const apiUrl = import.meta.env.VITE_API_URL ?? "";
 
@@ -36,62 +33,7 @@ const redemptionStatusLabels = {
   DENIED: "Nekad",
 };
 
-
-async function getRecentRedemptions(skip = 0) {
-  let query = "";
-  if (skip < 0) {
-    throw new Error("skip must be a non-negative integer");
-  }else if (skip > 0){
-    query = `?skip=${skip}`;
-  }
-  
-  const response = await authFetch(
-    `${apiUrl}/api/redemption/recent${query}`,
-  );
-
-  if (!response.ok) {
-    throw new Error(
-      "Kunde inte hämta senaste inlösningar"
-    );
-  }
-
-  const redemptions = (await response.json()) as RecentRedemptionResponse[];
-  const withPlaybackUrls = await Promise.all(
-    redemptions.map(async (redemption) => {
-      const videoResponse = await authFetch(
-        `${apiUrl}/api/files/${encodeURIComponent(redemption.videoId)}/playback-url`,
-      );
-
-      if (videoResponse.status === 404) {
-        return null;
-      }
-
-      if (!videoResponse.ok) {
-        throw new Error(
-          "Kunde inte hämta videon"
-        );
-      }
-
-      const { videoUrl } = (await videoResponse.json()) as {
-        videoUrl: string;
-      };
-
-      return { ...redemption, videoUrl };
-    }),
-  );
-
-  const playableRedemptions = withPlaybackUrls.filter(
-    (redemption): redemption is RecentRedemption => redemption !== null,
-  );
-
-  return {
-    items: playableRedemptions,
-    nextSkip: skip + redemptions.length,
-  };
-}
-
 function Redeem() {
-  const [menuOpen, setMenuOpen] = useState(false);
   const [amount, setAmount] = useState(1);
   const [video, setVideo] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -115,39 +57,86 @@ function Redeem() {
     ["ADMIN", "BONGMEISTER"].includes(role.toUpperCase()),
   );
 
-  const fetchRecentRedemptions = useCallback(async () => {
-    try {
-      const recent = await getRecentRedemptions();
-      setRedemptions(recent.items);
-      setRecentSkip(recent.nextSkip);
-      setActivityError(null);
-    } catch (error: unknown) {
-      setActivityError(
-         "Kunde inte hämta senaste inlösningar."
+  async function getRecentRedemptions(skip = 0) {
+    let query = "";
+    if (skip < 0) {
+      throw new Error("skip must be a non-negative integer");
+    }else if (skip > 0){
+      query = `?skip=${skip}`;
+    }
+    
+    const response = await authFetch(
+      `${apiUrl}/api/redemption/recent${query}`,
+    );
+
+    if (!response.ok) {
+      throw new Error(
+        "Kunde inte hämta senaste bongarna"
       );
     }
-  }, []);
+
+    const redemptions = (await response.json()) as RecentRedemptionResponse[];
+    const playableRedemptions: RecentRedemption[] = [];
+
+    for (const redemption of redemptions) {
+      try {
+        const videoResponse = await authFetch(
+          `${apiUrl}/api/files/${encodeURIComponent(redemption.videoId)}/playback-url`,
+        );
+
+        if (!videoResponse.ok) {
+          continue;
+        }
+
+        const data = (await videoResponse.json()) as {
+          videoUrl: string;
+        };
+
+        playableRedemptions.push({
+          ...redemption,
+          videoUrl: data.videoUrl,
+        });
+      } catch {
+        continue;
+      }
+    }
+
+    return {
+      items: playableRedemptions,
+      nextSkip: skip + redemptions.length,
+    };
+  }
 
   useEffect(() => {
-    void fetchRecentRedemptions();
-  }, [fetchRecentRedemptions]);
+
+    getRecentRedemptions()
+      .then((recent) => {
+
+        setRedemptions(recent.items);
+        setRecentSkip(recent.nextSkip);
+        setActivityError(null);
+      })
+      .catch(() => {
+          setActivityError("Kunde inte hämta senaste tagna bongar");
+      });
+  }, []);
 
   async function handleLoadMore() {
     if (isLoadingMore) return;
 
     try {
       setIsLoadingMore(true);
+
       const next = await getRecentRedemptions(recentSkip);
+
       setRedemptions((current) => [...current, ...next.items]);
       setRecentSkip(next.nextSkip);
 
       if (next.nextSkip === recentSkip) {
-        window.alert("Det finns inga fler inlösningar.");
+        window.alert("Det finns inga fler tagna bongar");
       }
-    } catch (error: unknown) {
-      setActivityError(
-        "Kunde inte hämta fler inlösningar."
-      );
+    } catch {
+      setActivityError("Kunde inte hämta fler tagna bongar");
     } finally {
       setIsLoadingMore(false);
     }
@@ -234,13 +223,13 @@ function Redeem() {
       }
 
       setSubmitMessage("Din redemption är nu uppe och väntar på godkännande!");
-      await fetchRecentRedemptions();
-    } catch (error: unknown) {
-      setSubmitError(
-        error instanceof Error
-          ? error.message
-          : "Något gick fel i processen, kontakta Kebert",
-      );
+      await getRecentRedemptions();
+    } catch (error) {
+      if (error instanceof Error){
+        setSubmitError(error.message)
+      }else{
+        setSubmitError("Något gick fel i processen, kontakta Kebert")
+      }
     } finally {
       setSubmitting(false);
     }
@@ -307,103 +296,7 @@ function Redeem() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 pb-24 text-white">
-      {menuOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/60"
-          onClick={() => setMenuOpen(false)}
-        />
-      )}
-
-      <aside
-        className={`fixed top-0 left-0 z-50 h-full w-72 bg-slate-800 shadow-2xl transition-transform duration-300 ${
-          menuOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
-      >
-        <div className="border-b border-slate-700 p-6">
-          <NavbarIdentity />
-        </div>
-
-        <nav className="flex flex-col p-4">
-          <button
-            onClick={() => navigate("/")}
-            className="rounded-xl p-3 text-left hover:bg-slate-700"
-          >
-            Hem
-          </button>
-          <button
-            onClick={() => navigate("/add")}
-            className="rounded-xl p-3 text-left hover:bg-slate-700"
-          >
-            Ge bong
-          </button>
-          <button
-            onClick={() => navigate("/leaderboard")}
-            className="rounded-xl p-3 text-left hover:bg-slate-700"
-          >
-            Topplista
-          </button>
-          <button
-            onClick={() => navigate("/gudar")}
-            className="rounded-xl p-3 text-left hover:bg-slate-700"
-          >
-            Gudar
-          </button>
-          {hasAnyRole(["ADMIN", "BONGMEISTER"]) && (
-            <button
-              onClick={() => navigate("/bongmeister")}
-              className="rounded-xl p-3 text-left hover:bg-slate-700"
-            >
-              Bongmeister
-            </button>
-          )}
-          {hasAnyRole(["ADMIN", "ORDFORANDE"]) && (
-            <button
-              onClick={() => navigate("/member-links")}
-              className="rounded-xl p-3 text-left hover:bg-slate-700"
-            >
-              Medlemslänkar
-            </button>
-          )}
-          <button
-            onClick={() => navigate("/notifications")}
-            className="rounded-xl p-3 text-left hover:bg-slate-700"
-          >
-            Notiser
-          </button>
-
-          <div className="mt-8 border-t border-slate-700 pt-4">
-            <button
-              onClick={() => navigate("/profile")}
-              className="w-full rounded-xl p-3 text-left hover:bg-slate-700"
-            >
-              Redigera profil
-            </button>
-            <LogoutButton className="w-full rounded-xl p-3 text-left hover:bg-slate-700" />
-          </div>
-        </nav>
-      </aside>
-
-      <header className="sticky top-0 z-30 border-b border-slate-800 bg-slate-950/90 backdrop-blur">
-        <div className="relative flex min-h-[160px] items-start p-4">
-          <button
-            onClick={() => setMenuOpen(true)}
-            className="z-10 rounded-lg p-2 text-2xl hover:bg-slate-800"
-            aria-label="Open menu"
-          >
-            ☰
-          </button>
-          <div className="absolute top-4 left-1/2 flex -translate-x-1/2 flex-col items-center">
-            <img
-              src={valhallLogo}
-              alt="Valhall Logo"
-              className="h-24 w-auto object-contain"
-            />
-            <h1 className="mt-2 text-3xl font-bold tracking-wider text-blue-500">
-              Valhall
-            </h1>
-          </div>
-        </div>
-      </header>
+      <Navbar />
 
       <main className="space-y-6 px-4 pt-16">
         <form

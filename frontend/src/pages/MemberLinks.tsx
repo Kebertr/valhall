@@ -1,10 +1,8 @@
 import { useEffect, useState } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 import { authFetch } from "../auth/authFetch";
-import LogoutButton from "../auth/LogoutButton";
+import Navbar from "../components/Navbar";
 import { hasAnyRole } from "../auth/roles";
-import NavbarIdentity from "../components/NavbarIdentity";
-import valhallLogo from "../assets/valhall.jpg";
 
 type Member = {
   memberId: number;
@@ -41,8 +39,6 @@ async function copyText(text: string) {
 }
 
 export default function MemberLinks() {
-  const navigate = useNavigate();
-  const [menuOpen, setMenuOpen] = useState(false);
   const [members, setMembers] = useState<Member[]>([]);
   const [selectedMemberId, setSelectedMemberId] = useState("");
   const [invitation, setInvitation] = useState<Invitation | null>(null);
@@ -105,104 +101,7 @@ export default function MemberLinks() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 pb-24 text-white">
-      {menuOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/60"
-          onClick={() => setMenuOpen(false)}
-        />
-      )}
-
-      <aside
-        className={`fixed top-0 left-0 z-50 h-full w-72 bg-slate-800 shadow-2xl transition-transform duration-300 ${menuOpen ? "translate-x-0" : "-translate-x-full"}`}
-      >
-        <div className="border-b border-slate-700 p-6">
-          <NavbarIdentity />
-        </div>
-
-        <nav className="flex flex-col p-4">
-          <button
-            onClick={() => navigate("/")}
-            className="rounded-xl p-3 text-left hover:bg-slate-700"
-          >
-            Hem
-          </button>
-          <button
-            onClick={() => navigate("/add")}
-            className="rounded-xl p-3 text-left hover:bg-slate-700"
-          >
-            Ge bong
-          </button>
-          <button
-            onClick={() => navigate("/redeem")}
-            className="rounded-xl p-3 text-left hover:bg-slate-700"
-          >
-            Bli av med bong
-          </button>
-          <button
-            onClick={() => navigate("/leaderboard")}
-            className="rounded-xl p-3 text-left hover:bg-slate-700"
-          >
-            Topplista
-          </button>
-          <button
-            onClick={() => navigate("/gudar")}
-            className="rounded-xl p-3 text-left hover:bg-slate-700"
-          >
-            Gudar
-          </button>
-          <button
-            onClick={() => navigate("/member-links")}
-            className="rounded-xl p-3 text-left hover:bg-slate-700"
-          >
-            Medlemslänkar
-          </button>
-          <button
-            onClick={() => navigate("/notifications")}
-            className="rounded-xl p-3 text-left hover:bg-slate-700"
-          >
-            Notiser
-          </button>
-          {hasAnyRole(["ADMIN", "BONGMEISTER"]) && (
-            <button
-              onClick={() => navigate("/bongmeister")}
-              className="rounded-xl p-3 text-left hover:bg-slate-700"
-            >
-              Bongmeister
-            </button>
-          )}
-          <div className="mt-8 border-t border-slate-700 pt-4">
-            <button
-              onClick={() => navigate("/profile")}
-              className="w-full rounded-xl p-3 text-left hover:bg-slate-700"
-            >
-              Redigera profil
-            </button>
-            <LogoutButton className="w-full rounded-xl p-3 text-left hover:bg-slate-700" />
-          </div>
-        </nav>
-      </aside>
-
-      <header className="sticky top-0 z-30 border-b border-slate-800 bg-slate-950/90 backdrop-blur">
-        <div className="relative flex min-h-[160px] items-start p-4">
-          <button
-            onClick={() => setMenuOpen(true)}
-            className="z-10 rounded-lg p-2 text-2xl hover:bg-slate-800"
-            aria-label="Open menu"
-          >
-            ☰
-          </button>
-          <div className="absolute top-4 left-1/2 flex -translate-x-1/2 flex-col items-center">
-            <img
-              src={valhallLogo}
-              alt="Valhall Logo"
-              className="h-24 w-auto object-contain"
-            />
-            <h1 className="mt-2 text-3xl font-bold tracking-wider text-blue-500">
-              Valhall
-            </h1>
-          </div>
-        </div>
-      </header>
+      <Navbar />
 
       <main className="mx-auto max-w-2xl px-4 pt-16">
         <section className="rounded-3xl border border-blue-900/30 bg-slate-800/90 p-6 shadow-2xl">

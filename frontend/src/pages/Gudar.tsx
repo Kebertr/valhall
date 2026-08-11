@@ -1,10 +1,7 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import valhallLogo from "../assets/valhall.jpg";
 import { authFetch } from "../auth/authFetch";
-import LogoutButton from "../auth/LogoutButton";
+import Navbar from "../components/Navbar";
 import { hasAnyRole } from "../auth/roles";
-import NavbarIdentity from "../components/NavbarIdentity";
 
 type MemberStatus = "VIKING" | "GUD" | "AS";
 
@@ -20,7 +17,6 @@ type Member = {
 const statuses: MemberStatus[] = ["GUD", "AS", "VIKING"];
 
 function Gudar() {
-  const [menuOpen, setMenuOpen] = useState(false);
   const [members, setMembers] = useState<Member[]>([]);
   const [isLoadingMembers, setIsLoadingMembers] = useState(true);
   const [membersError, setMembersError] = useState<string | null>(null);
@@ -29,12 +25,9 @@ function Gudar() {
   const [status, setStatus] = useState<MemberStatus>("VIKING");
   const [role, setRole] = useState("");
   const [createMessage, setCreateMessage] = useState<string | null>(null);
-  const navigate = useNavigate();
   const canCreateMembers = hasAnyRole(["ADMIN", "ORDFORANDE"]);
 
   useEffect(() => {
-    let active = true;
-
     async function fetchMembers() {
       try {
         setIsLoadingMembers(true);
@@ -48,27 +41,17 @@ function Gudar() {
 
         const data = (await response.json()) as Member[];
 
-        if (active) {
-          setMembers(data);
-        }
+        setMembers(data);
       } catch (error) {
-        if (active) {
-          setMembersError(
-            error instanceof Error ? error.message : "Could not fetch members",
-          );
-        }
+        setMembersError(
+          error instanceof Error ? error.message : "Could not fetch members",
+        );
       } finally {
-        if (active) {
-          setIsLoadingMembers(false);
-        }
+        setIsLoadingMembers(false);
       }
     }
 
     fetchMembers();
-
-    return () => {
-      active = false;
-    };
   }, []);
 
   async function createMember(event: React.FormEvent<HTMLFormElement>) {
@@ -107,99 +90,7 @@ function Gudar() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 pb-16 text-white">
-      {menuOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/60"
-          onClick={() => setMenuOpen(false)}
-        />
-      )}
-
-      <aside
-        className={`fixed top-0 left-0 z-50 h-full w-72 bg-slate-800 shadow-2xl transition-transform duration-300 ${menuOpen ? "translate-x-0" : "-translate-x-full"}`}
-      >
-        <div className="border-b border-slate-700 p-6">
-          <NavbarIdentity />
-        </div>
-        <nav className="flex flex-col p-4">
-          <button
-            onClick={() => navigate("/")}
-            className="rounded-xl p-3 text-left hover:bg-slate-700"
-          >
-            Hem
-          </button>
-          <button
-            onClick={() => navigate("/add")}
-            className="rounded-xl p-3 text-left hover:bg-slate-700"
-          >
-            Ge bong
-          </button>
-          <button
-            onClick={() => navigate("/redeem")}
-            className="rounded-xl p-3 text-left hover:bg-slate-700"
-          >
-            Bli av med bong
-          </button>
-          <button
-            onClick={() => navigate("/leaderboard")}
-            className="rounded-xl p-3 text-left hover:bg-slate-700"
-          >
-            Topplista
-          </button>
-          <button
-            onClick={() => navigate("/notifications")}
-            className="rounded-xl p-3 text-left hover:bg-slate-700"
-          >
-            Notiser
-          </button>
-          {hasAnyRole(["ADMIN", "BONGMEISTER"]) && (
-            <button
-              onClick={() => navigate("/bongmeister")}
-              className="rounded-xl p-3 text-left hover:bg-slate-700"
-            >
-              Bongmeister
-            </button>
-          )}
-          {hasAnyRole(["ADMIN", "ORDFORANDE"]) && (
-            <button
-              onClick={() => navigate("/member-links")}
-              className="rounded-xl p-3 text-left hover:bg-slate-700"
-            >
-              Medlemslänkar
-            </button>
-          )}
-          <div className="mt-8 border-t border-slate-700 pt-4">
-            <button
-              onClick={() => navigate("/profile")}
-              className="w-full rounded-xl p-3 text-left hover:bg-slate-700"
-            >
-              Redigera profil
-            </button>
-            <LogoutButton className="w-full rounded-xl p-3 text-left hover:bg-slate-700" />
-          </div>
-        </nav>
-      </aside>
-
-      <header className="sticky top-0 z-30 border-b border-slate-800 bg-slate-950/90 backdrop-blur">
-        <div className="relative flex min-h-[160px] items-start p-4">
-          <button
-            onClick={() => setMenuOpen(true)}
-            className="z-10 rounded-lg p-2 text-2xl hover:bg-slate-800"
-            aria-label="Open menu"
-          >
-            ☰
-          </button>
-          <div className="absolute top-4 left-1/2 flex -translate-x-1/2 flex-col items-center">
-            <img
-              src={valhallLogo}
-              alt="Valhall Logo"
-              className="h-24 w-auto object-contain"
-            />
-            <h1 className="mt-2 text-3xl font-bold tracking-wider text-blue-500">
-              Valhall
-            </h1>
-          </div>
-        </div>
-      </header>
+      <Navbar />
 
       <main className="mx-auto max-w-6xl space-y-5 px-4 pt-12">
         {canCreateMembers && (
