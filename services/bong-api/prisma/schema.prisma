@@ -36,8 +36,19 @@ model Redemption {
   toId          String
   acceptedId    String?
   amount        Int
-  videoUrl      String
+  videoId       String
   status        approveStatus    @default(PENDING)
   createdAt     DateTime         @default(now())
   reviewedAt    DateTime?
+
+  @@index([toId])
+}
+
+model BongBalance {
+  memberId     String   @id
+  totalAdded   Int      @default(0)
+  totalTaken   Int      @default(0)
+  totalPending Int      @default(0)
+  currentAmount Int     @default(0)
+  updatedAt    DateTime @updatedAt
 }

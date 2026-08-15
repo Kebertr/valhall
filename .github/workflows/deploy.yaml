@@ -1,10 +1,10 @@
 name: CI Pipeline
 
 on:
-  pull_request:
-    branches: [main]
   push:
-    branches: [main]
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
 
 permissions:
   contents: read
@@ -19,28 +19,29 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.17.0
+
       - name: Setup Node
         uses: actions/setup-node@v5
         with:
           node-version: 24
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
 
       - name: Install dependencies
-        working-directory: frontend
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Lint frontend
-        working-directory: frontend
-        run: npm run lint
+        run: pnpm --filter frontend lint
 
       - name: Test frontend
-        working-directory: frontend
-        run: npm test -- --run
+        run: pnpm --filter frontend test -- --run
 
       - name: Build frontend
-        working-directory: frontend
-        run: npm run build
+        run: pnpm --filter frontend build
 
   backend:
     name: Backend checks
@@ -50,46 +51,71 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.17.0
+
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 24
-          cache: npm
-          cache-dependency-path: services/bong-api/package-lock.json
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
 
       - name: Install dependencies
-        working-directory: services/bong-api
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
-      - name: Generate Prisma client
-        working-directory: services/bong-api
-        run: npx prisma generate
+      - name: Generate Prisma clients
+        run: |
+          pnpm --filter bong-api exec prisma generate
+          pnpm --filter member-api exec prisma generate
+          pnpm --filter videos-api exec prisma generate
 
-      - name: Lint backend
-        working-directory: services/bong-api
-        run: npm run lint
+      - name: Build shared auth package
+        run: pnpm build:auth
 
-      - name: Test backend
-        working-directory: services/bong-api
-        run: npm test
+      - name: Lint bong API
+        run: pnpm --filter bong-api lint
 
-      - name: Build backend
-        working-directory: services/bong-api
-        run: npm run build
+      - name: Test bong API
+        run: pnpm --filter bong-api test
+
+      - name: Lint member API
+        run: pnpm --filter member-api lint
+
+      - name: Test bong API
+        run: pnpm --filter bong-api test
+
+      - name: Lint member API
+        run: pnpm --filter member-api lint
+
+      - name: Test bong API
+        run: pnpm --filter bong-api test
+      
+      - name: Build backend workspaces
+        run: pnpm build
 
   docker-images:
     name: Build and push Docker images
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     needs: [frontend, backend]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    env:
-      IMAGE_TAG: build-${{ github.run_number }}
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Set image tag
+        run: |
+          SHORT_SHA=${GITHUB_SHA::7}
+
+          if [ "${GITHUB_REF_NAME}" = "dev" ]; then
+            echo "IMAGE_TAG=dev-$SHORT_SHA" >> $GITHUB_ENV
+          elif [ "${GITHUB_REF_NAME}" = "main" ]; then
+            echo "IMAGE_TAG=prod-$SHORT_SHA" >> $GITHUB_ENV
+          fi
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
@@ -102,17 +128,54 @@ jobs:
         run: |
           CHANGED=$(git diff --name-only "${{ github.event.before }}" "${{ github.sha }}")
 
-          if echo "$CHANGED" | grep -q '^frontend/'; then
+          if [ "${GITHUB_REF_NAME}" = "dev" ]; then
+            VITE_API_URL=https://dev-valhall.kebert.se
+            VITE_KEYCLOAK_CLIENT_ID=valhall-frontend-dev
+          else
+            VITE_API_URL=https://valhall.kebert.se
+            VITE_KEYCLOAK_CLIENT_ID=valhall-frontend
+          fi
+
+          VITE_KEYCLOAK_URL=https://auth.kebert.se
+          VITE_KEYCLOAK_REALM=valhall
+          
+
+          if echo "$CHANGED" | grep -Eq '^(frontend/|package.json|pnpm-lock.yaml)'; then
             docker build \
-              --build-arg VITE_API_URL=https://valhall.kebert.se \
+              --target frontend-runtime
+              --build-arg VITE_API_URL=$VITE_API_URL \
+              --build-arg VITE_KEYCLOAK_URL=$VITE_KEYCLOAK_URL \
+              --build-arg VITE_KEYCLOAK_REALM=$VITE_KEYCLOAK_REALM \
+              --build-arg VITE_KEYCLOAK_CLIENT_ID=$VITE_KEYCLOAK_CLIENT_ID \
+              -f frontend/Dockerfile \
               -t ghcr.io/kebertr/valhall-frontend:${IMAGE_TAG} \
-              ./frontend
+              .
             docker push ghcr.io/kebertr/valhall-frontend:${IMAGE_TAG}
           fi
 
-          if echo "$CHANGED" | grep -q '^services/bong-api/'; then
+          if echo "$CHANGED" | grep -Eq '^(services/bong-api/|package.json|pnpm-lock.yaml)'; then
             docker build \
+              --target bong-runtime
+              -f Dockerfile \
               -t ghcr.io/kebertr/valhall-bong-api:${IMAGE_TAG} \
-              ./services/bong-api
+              .
             docker push ghcr.io/kebertr/valhall-bong-api:${IMAGE_TAG}
+          fi
+
+          if echo "$CHANGED" | grep -Eq '^(services/member-api/|packages/auth/|package.json|pnpm-lock.yaml)'; then
+            docker build \
+              --target member-runtime
+              -f Dockerfile \
+              -t ghcr.io/kebertr/valhall-member-api:${IMAGE_TAG} \
+              .
+            docker push ghcr.io/kebertr/valhall-member-api:${IMAGE_TAG}
+          fi
+
+          if echo "$CHANGED" | grep -Eq '^(services/videos-api/|packages/auth/|package.json|pnpm-lock.yaml)'; then
+            docker build \
+              --target videos-runtime
+              -f Dockerfile \
+              -t ghcr.io/kebertr/valhall-videos-api:${IMAGE_TAG} \
+              .
+            docker push ghcr.io/kebertr/valhall-videos-api:${IMAGE_TAG}
           fi

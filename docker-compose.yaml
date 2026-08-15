@@ -1,14 +1,12 @@
-version: "3.9"
-
 services:
-  postgres:
+  postgres-bong:
     image: postgres:16
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_DB: ${POSTGRES_DB_BONG}
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB_BONG}"]
       interval: 3s
       retries: 10
     ports:
@@ -17,34 +15,136 @@ services:
       - bong-db-data:/var/lib/postgresql/data
     networks:
       - app-network
+
+  postgres-member:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB_MEMBER}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB_MEMBER}"]
+      interval: 3s
+      retries: 10
+    ports:
+      - "5434:5432"
+    volumes:
+      - member-db-data:/var/lib/postgresql/data
+    networks:
+      - app-network
+
+  postgres-videos:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB_VIDEOS}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB_VIDEOS}"]
+      interval: 3s
+      retries: 10
+    ports:
+      - "5435:5432"
+    volumes:
+      - videos-db-data:/var/lib/postgresql/data
+    networks:
+      - app-network
+
   bong-api:
     build:
-      context: ./services/bong-api
+      context: .
       dockerfile: Dockerfile
+      target: bong-runtime
     ports:
-      - "3000:3000"
+      - "3001:3001"
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres-bong:5432/${POSTGRES_DB_BONG}
+      KEYCLOAK_URL: ${KEYCLOAK_URL}
+      KEYCLOAK_REALM: ${KEYCLOAK_REALM}
+      KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID}
+      MEMBER_GRPC_URL: member-api:50051
+      VIDEO_GRPC_URL: videos-api:50052
     depends_on:
-      postgres:
+      postgres-bong:
         condition: service_healthy
+      member-api:
+        condition: service_started
+      videos-api:
+        condition: service_started
+    networks:
+      - app-network
+
+  member-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: member-runtime
+    ports:
+      - "3002:3002"
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres-member:5432/${POSTGRES_DB_MEMBER}
+      KEYCLOAK_URL: ${KEYCLOAK_URL}
+      KEYCLOAK_REALM: ${KEYCLOAK_REALM}
+      KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
+    depends_on:
+      postgres-member:
+        condition: service_healthy
+    networks:
+      - app-network
+
+  videos-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: videos-runtime
+    ports:
+      - "3003:3003"
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres-videos:5432/${POSTGRES_DB_VIDEOS}
+      KEYCLOAK_URL: ${KEYCLOAK_URL}
+      KEYCLOAK_REALM: ${KEYCLOAK_REALM}
+      KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
+      MEMBER_GRPC_URL: member-api:50051
+      VIDEO_GRPC_BIND_URL: 0.0.0.0:50052
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT}
+      MINIO_PORT: ${MINIO_PORT}
+      MINIO_USE_SSL: ${MINIO_USE_SSL}
+      MINIO_VIDEO_BUCKET: ${MINIO_VIDEO_BUCKET}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+    depends_on:
+      postgres-videos:
+        condition: service_healthy
+      member-api:
+        condition: service_started
     networks:
       - app-network
 
   frontend:
     build:
-      context: ./frontend
+      context: .
       dockerfile: Dockerfile
+      target: frontend-runtime
       args:
-        VITE_API_URL: http://localhost:3000
+        VITE_KEYCLOAK_URL: ${KEYCLOAK_URL}
+        VITE_KEYCLOAK_REALM: ${KEYCLOAK_REALM}
+        VITE_KEYCLOAK_CLIENT_ID: ${VITE_KEYCLOAK_CLIENT_ID}
     ports:
       - "5173:5173"
     depends_on:
       - bong-api
+      - member-api
+      - videos-api
+    networks:
+      - app-network
 
 
 volumes:
   bong-db-data:
+  member-db-data:
+  videos-db-data:
 
 networks:
   app-network:

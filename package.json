@@ -1,0 +1,22 @@
+{
+  "name": "valhall",
+  "private": true,
+  "packageManager": "pnpm@11.17.0",
+  "workspaces": [
+    "packages/*",
+    "services/*",
+    "frontend"
+  ],
+  "scripts": {
+    "build": "pnpm --recursive --if-present build",
+    "build:auth": "pnpm --filter @valhall/auth build",
+    "build:member": "pnpm --filter member-api build",
+    "build:bong": "pnpm --filter bong-api build",
+    "build:frontend": "pnpm --filter frontend build",
+    "test": "pnpm --recursive --if-present test",
+    "start:member": "pnpm --filter member-api start:dev",
+    "start:bong": "pnpm --filter bong-api start:dev",
+    "start:frontend": "pnpm --filter frontend dev",
+    "start:videos": "pnpm --filter videos-api start:dev"
+  }
+}

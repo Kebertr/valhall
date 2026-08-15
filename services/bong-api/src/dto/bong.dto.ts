@@ -1,13 +1,22 @@
 // src/dto/create-shot.dto.ts
 import { ApiProperty } from '@nestjs/swagger';
+import { IsInt, IsString, IsUUID, Min } from 'class-validator';
 
 export class CreateShotDto {
-  @ApiProperty({ example: 'Rasmus' })
+  @ApiProperty({
+    example: '550e8400-e29b-41d4-a716-446655440000',
+    format: 'uuid',
+    description: 'UUID of the GUD receiving the shot',
+  })
+  @IsUUID()
   Id!: string;
 
-  @ApiProperty({ example: 2 })
+  @IsInt()
+  @Min(1)
+  @ApiProperty({ example: 2, minimum: 1 })
   amount!: number;
 
   @ApiProperty({ example: 'Kom sent' })
+  @IsString()
   reason!: string;
 }
