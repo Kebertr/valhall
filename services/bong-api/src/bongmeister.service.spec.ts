@@ -36,6 +36,10 @@ describe('BongmeisterService', () => {
   beforeEach(async () => {
     jest.clearAllMocks();
     prisma = mockDeep<PrismaService>();
+    prisma.$transaction.mockImplementation(
+      async (callback: (client: PrismaService) => Promise<unknown>) =>
+        callback(prisma),
+    );
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         BongmeisterService,
