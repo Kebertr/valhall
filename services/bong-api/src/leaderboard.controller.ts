@@ -1,10 +1,10 @@
+import { Controller, Get, Headers, UseGuards } from '@nestjs/common';
 import {
-  Controller,
-  Get,
-  Headers,
-  UseGuards,
-} from '@nestjs/common';
-import { ApiBearerAuth, ApiCreatedResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+  ApiBearerAuth,
+  ApiCreatedResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from '@valhall/auth';
 import { LeaderboardService } from './leaderboard.service';
 

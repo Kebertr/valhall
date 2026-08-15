@@ -48,7 +48,13 @@ import { RecentController } from './recent.controller';
       },
     ]),
   ],
-  controllers: [BongController, RedemptionController, BongmeisterController, LeaderboardController, RecentController],
+  controllers: [
+    BongController,
+    RedemptionController,
+    BongmeisterController,
+    LeaderboardController,
+    RecentController,
+  ],
   providers: [
     BongService,
     PrismaService,

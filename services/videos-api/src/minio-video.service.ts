@@ -76,7 +76,7 @@ export class MinioVideoService {
 
     return { videoUrl };
   }
-  
+
   async createUploadPost(
     originalFilename: string,
     contentType: string,

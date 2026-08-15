@@ -12,7 +12,6 @@ import { MinioVideoService } from './minio-video.service';
 import { JwtAuthGuard } from '@valhall/auth';
 import { CreateVideoUploadDto, VideoUploadCompleteDto } from './dto/videos.dto';
 
-
 @ApiTags('Videos')
 @ApiBearerAuth('keycloak')
 @UseGuards(JwtAuthGuard)
@@ -35,10 +34,7 @@ export class MinioVideoController {
     @Body() body: VideoUploadCompleteDto,
     @Headers('authorization') authorization: string,
   ) {
-    return this.service.completeUpload(
-      body.videoId,
-      authorization,
-    );
+    return this.service.completeUpload(body.videoId, authorization);
   }
 
   @Post('upload-url')

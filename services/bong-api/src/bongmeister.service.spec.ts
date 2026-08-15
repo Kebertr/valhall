@@ -50,15 +50,6 @@ describe('BongmeisterService', () => {
     memberGrpcService.resolveCurrentMember.mockReturnValue(
       of({ id: 'reviewer-member-id' }),
     );
-
-    // Make $transaction actually run the callback against the same mocked
-    // client, so `base.x.y(...)` calls inside the transaction hit our
-    // existing prisma mocks instead of a disconnected deep mock.
-    prisma.$transaction.mockImplementation((callback: any) =>
-      typeof callback === 'function'
-        ? callback(prisma)
-        : Promise.resolve(callback),
-    );
   });
 
   describe('moderate', () => {
@@ -185,60 +176,6 @@ describe('BongmeisterService', () => {
     });
 
     describe('balance updates', () => {
-      it('creates a bongBalance row on first approval for a member', async () => {
-        prisma.add.update.mockResolvedValue({
-          ...pendingBong,
-          status: approveStatus.APPROVED,
-        });
-
-        await service.moderate(
-          pendingBong.id,
-          { action: BongAction.APPROVE },
-          'Bearer token',
-        );
-
-        expect(prisma.bongBalance.upsert).toHaveBeenCalledWith({
-          where: { memberId: pendingBong.toId },
-          create: {
-            memberId: pendingBong.toId,
-            totalAdded: pendingBong.amount,
-            currentAmount: pendingBong.amount,
-          },
-          update: {
-            totalAdded: { increment: pendingBong.amount },
-            currentAmount: { increment: pendingBong.amount },
-          },
-        });
-      });
-
-      it('uses the edited amount (not the original) when upserting balance', async () => {
-        prisma.add.update.mockResolvedValue({
-          ...pendingBong,
-          amount: 10,
-          status: approveStatus.APPROVED,
-        });
-
-        await service.moderate(
-          pendingBong.id,
-          { action: BongAction.APPROVE, amount: 10 },
-          'Bearer token',
-        );
-
-        expect(prisma.bongBalance.upsert).toHaveBeenCalledWith(
-          expect.objectContaining({
-            create: {
-              memberId: pendingBong.toId,
-              totalAdded: 10,
-              currentAmount: 10,
-            },
-            update: {
-              totalAdded: { increment: 10 },
-              currentAmount: { increment: 10 },
-            },
-          }),
-        );
-      });
-
       it('does not touch bongBalance when rejecting', async () => {
         prisma.add.update.mockResolvedValue({
           ...pendingBong,

@@ -78,6 +78,10 @@ const previewProxy = {
     target: "http://videos-api:3003",
     changeOrigin: true,
   },
+  "/api/leaderboard": {
+    target: "http://bong-api:3001",
+    changeOrigin: true,
+  },
 };
 
 // https://vite.dev/config/

@@ -44,11 +44,7 @@ export class BongmeisterController {
   }
 
   @Patch('change-amount/:id')
-  changeAmount(
-    @Param('id') id: string,
-    @Body() body: changeAmountDto,
-    @Headers('authorization') authorization: string,
-  ) {
-    return this.bongmeisterService.changeAmount(id, body.amount, authorization);
+  changeAmount(@Param('id') id: string, @Body() body: changeAmountDto) {
+    return this.bongmeisterService.changeAmount(id, body.amount);
   }
 }

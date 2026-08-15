@@ -1,9 +1,17 @@
-import { IsInt, IsNotEmpty, IsString, IsUUID, Matches, Max, Min, MinLength, isNotEmpty} from 'class-validator';
+import {
+  IsInt,
+  IsNotEmpty,
+  IsString,
+  IsUUID,
+  Matches,
+  Max,
+  Min,
+} from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 const MAXIMUM_VIDEO_SIZE = 1024 * 1024 * 1024;
 export class CreateVideoUploadDto {
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Filename of the video',
     example: 'my-video.mp4',
     maxLength: 255,
@@ -42,4 +50,3 @@ export class VideoUploadCompleteDto {
   @IsUUID()
   videoId!: string;
 }
-

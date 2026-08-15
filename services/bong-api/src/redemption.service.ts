@@ -1,4 +1,9 @@
-import { ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from './prisma.service';
 import { CreateRedemptionDto } from './dto/redemption.dto';
 import { firstValueFrom, Observable } from 'rxjs';
@@ -32,7 +37,6 @@ interface VideoGrpcService {
     },
     metadata: Metadata,
   ): Observable<CompletedVideoResponse>;
-
 }
 
 type CurrentMember = {
@@ -77,10 +81,7 @@ export class RedemptionService {
       this.videoClient.getService<VideoGrpcService>('VideoService');
   }
 
-  async createRedemption(
-    body: CreateRedemptionDto,
-    authorization: string,
-  ) {
+  async createRedemption(body: CreateRedemptionDto, authorization: string) {
     const metadata = this.createMetadata(authorization);
 
     const member = await firstValueFrom(
@@ -98,55 +99,52 @@ export class RedemptionService {
       ),
     );
 
-    return this.prisma.$transaction(async (base) => {
-      const balance = await base.bongBalance.findUnique({
-        where: {
-          memberId: member.id,
-        },
-      });
-
-      if (!balance) {
-        throw new ConflictException(
-          'Insufficient balance for redemption',
-        );
-      }
-
-      await base.bongBalance.update({
-        where: {
-          memberId: member.id,
-        },
-        data: {
-          totalPending: {
-            increment: body.bongAmount,
+    return this.prisma.$transaction(
+      async (base) => {
+        const balance = await base.bongBalance.findUnique({
+          where: {
+            memberId: member.id,
           },
-        },
-      });
+        });
 
-      const redemption = await base.redemption.create({
-        data: {
-          toId: member.id,
-          amount: body.bongAmount,
+        if (!balance) {
+          throw new ConflictException('Insufficient balance for redemption');
+        }
+
+        await base.bongBalance.update({
+          where: {
+            memberId: member.id,
+          },
+          data: {
+            totalPending: {
+              increment: body.bongAmount,
+            },
+          },
+        });
+
+        const redemption = await base.redemption.create({
+          data: {
+            toId: member.id,
+            amount: body.bongAmount,
+            videoId: upload.videoId,
+            status: approveStatus.PENDING,
+          },
+        });
+
+        return {
+          redemptionId: redemption.id,
           videoId: upload.videoId,
-          status: approveStatus.PENDING,
-        },
-      });
-
-      return {
-        redemptionId: redemption.id,
-        videoId: upload.videoId,
-        postUrl: upload.postUrl,
-        formData: upload.formData,
-      };
-    },
-    {
-      isolationLevel: 'Serializable',
-    });
+          postUrl: upload.postUrl,
+          formData: upload.formData,
+        };
+      },
+      {
+        isolationLevel: 'Serializable',
+      },
+    );
   }
 
-  async completeRedemptionUpload(
-    redemptionId: string,
-    authorization: string,
-  ) {
+  async completeRedemptionUpload(redemptionId: string, authorization: string) {
     const metadata = this.createMetadata(authorization);
 
     const member = await firstValueFrom(
@@ -214,17 +212,20 @@ export class RedemptionService {
 
     return redemptions.map((redemption) => {
       const receiver = members.find((member) => member.id === redemption.toId);
-      const reviewer = members.find((member) => member.id === redemption.acceptedId);
+      const reviewer = members.find(
+        (member) => member.id === redemption.acceptedId,
+      );
 
       return {
-      id: redemption.id,
-      memberName: receiver?.name ?? 'Okänd medlem',
-      amount: redemption.amount,
-      status: redemption.status,
-      createdAt: redemption.createdAt,
-      videoId: redemption.videoId,
-      acceptedByName: reviewer?.name ?? 'Okänd medlem',
-    }});
+        id: redemption.id,
+        memberName: receiver?.name ?? 'Okänd medlem',
+        amount: redemption.amount,
+        status: redemption.status,
+        createdAt: redemption.createdAt,
+        videoId: redemption.videoId,
+        acceptedByName: reviewer?.name ?? 'Okänd medlem',
+      };
+    });
   }
 
   private createMetadata(authorization: string) {

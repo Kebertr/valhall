@@ -141,6 +141,7 @@ jobs:
 
           if echo "$CHANGED" | grep -Eq '^(frontend/|package.json|pnpm-lock.yaml)'; then
             docker build \
+              --target frontend-runtime
               --build-arg VITE_API_URL=$VITE_API_URL \
               --build-arg VITE_KEYCLOAK_URL=$VITE_KEYCLOAK_URL \
               --build-arg VITE_KEYCLOAK_REALM=$VITE_KEYCLOAK_REALM \
@@ -153,7 +154,8 @@ jobs:
 
           if echo "$CHANGED" | grep -Eq '^(services/bong-api/|package.json|pnpm-lock.yaml)'; then
             docker build \
-              -f services/bong-api/Dockerfile \
+              --target bong-runtime
+              -f Dockerfile \
               -t ghcr.io/kebertr/valhall-bong-api:${IMAGE_TAG} \
               .
             docker push ghcr.io/kebertr/valhall-bong-api:${IMAGE_TAG}
@@ -161,8 +163,18 @@ jobs:
 
           if echo "$CHANGED" | grep -Eq '^(services/member-api/|packages/auth/|package.json|pnpm-lock.yaml)'; then
             docker build \
-              -f services/member-api/Dockerfile \
+              --target member-runtime
+              -f Dockerfile \
               -t ghcr.io/kebertr/valhall-member-api:${IMAGE_TAG} \
               .
             docker push ghcr.io/kebertr/valhall-member-api:${IMAGE_TAG}
+          fi
+
+          if echo "$CHANGED" | grep -Eq '^(services/videos-api/|packages/auth/|package.json|pnpm-lock.yaml)'; then
+            docker build \
+              --target videos-runtime
+              -f Dockerfile \
+              -t ghcr.io/kebertr/valhall-videos-api:${IMAGE_TAG} \
+              .
+            docker push ghcr.io/kebertr/valhall-videos-api:${IMAGE_TAG}
           fi

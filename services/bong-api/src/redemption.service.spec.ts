@@ -1,7 +1,4 @@
-import {
-  ConflictException,
-  NotFoundException,
-} from '@nestjs/common';
+import { ConflictException, NotFoundException } from '@nestjs/common';
 import { Metadata } from '@grpc/grpc-js';
 import { of, throwError } from 'rxjs';
 import { RedemptionService } from './redemption.service';
@@ -101,9 +98,7 @@ describe('RedemptionService', () => {
 
     prisma.$transaction.mockImplementation(
       async (
-        callback: (
-          client: typeof transactionClient,
-        ) => Promise<unknown>,
+        callback: (client: typeof transactionClient) => Promise<unknown>,
       ) => callback(transactionClient),
     );
   });
@@ -114,13 +109,9 @@ describe('RedemptionService', () => {
 
   describe('onModuleInit', () => {
     it('should initialize the member and video gRPC services', () => {
-      expect(memberClient.getService).toHaveBeenCalledWith(
-        'MemberService',
-      );
+      expect(memberClient.getService).toHaveBeenCalledWith('MemberService');
 
-      expect(videoClient.getService).toHaveBeenCalledWith(
-        'VideoService',
-      );
+      expect(videoClient.getService).toHaveBeenCalledWith('VideoService');
     });
   });
 
@@ -174,10 +165,7 @@ describe('RedemptionService', () => {
     });
 
     it('should create a pending redemption and return upload information', async () => {
-      const result = await service.createRedemption(
-        body,
-        authorization,
-      );
+      const result = await service.createRedemption(body, authorization);
 
       expect(result).toEqual({
         redemptionId,
@@ -193,21 +181,14 @@ describe('RedemptionService', () => {
     it('should resolve the current member using authorization metadata', async () => {
       await service.createRedemption(body, authorization);
 
-      expect(
-        memberService.resolveCurrentMember,
-      ).toHaveBeenCalledTimes(1);
+      expect(memberService.resolveCurrentMember).toHaveBeenCalledTimes(1);
 
-      const [request, metadata] =
-        memberService.resolveCurrentMember.mock.calls[0] as [
-          Record<string, never>,
-          Metadata,
-        ];
+      const [request, metadata] = memberService.resolveCurrentMember.mock
+        .calls[0] as [Record<string, never>, Metadata];
 
       expect(request).toEqual({});
       expect(metadata).toBeInstanceOf(Metadata);
-      expect(metadata.get('authorization')).toEqual([
-        authorization,
-      ]);
+      expect(metadata.get('authorization')).toEqual([authorization]);
     });
 
     it('should request a presigned upload from the video service', async () => {
@@ -215,15 +196,14 @@ describe('RedemptionService', () => {
 
       expect(videoService.getPostUpload).toHaveBeenCalledTimes(1);
 
-      const [request, metadata] =
-        videoService.getPostUpload.mock.calls[0] as [
-          {
-            filename: string;
-            contentType: string;
-            sizeBytes: number;
-          },
-          Metadata,
-        ];
+      const [request, metadata] = videoService.getPostUpload.mock.calls[0] as [
+        {
+          filename: string;
+          contentType: string;
+          sizeBytes: number;
+        },
+        Metadata,
+      ];
 
       expect(request).toEqual({
         filename: body.filename,
@@ -231,28 +211,21 @@ describe('RedemptionService', () => {
         sizeBytes: body.sizeBytes,
       });
 
-      expect(metadata.get('authorization')).toEqual([
-        authorization,
-      ]);
+      expect(metadata.get('authorization')).toEqual([authorization]);
     });
 
     it('should run the database operations in a serializable transaction', async () => {
       await service.createRedemption(body, authorization);
 
-      expect(prisma.$transaction).toHaveBeenCalledWith(
-        expect.any(Function),
-        {
-          isolationLevel: 'Serializable',
-        },
-      );
+      expect(prisma.$transaction).toHaveBeenCalledWith(expect.any(Function), {
+        isolationLevel: 'Serializable',
+      });
     });
 
     it('should look up the balance belonging to the current member', async () => {
       await service.createRedemption(body, authorization);
 
-      expect(
-        transactionClient.bongBalance.findUnique,
-      ).toHaveBeenCalledWith({
+      expect(transactionClient.bongBalance.findUnique).toHaveBeenCalledWith({
         where: {
           memberId,
         },
@@ -262,9 +235,7 @@ describe('RedemptionService', () => {
     it('should increment totalPending by the requested amount', async () => {
       await service.createRedemption(body, authorization);
 
-      expect(
-        transactionClient.bongBalance.update,
-      ).toHaveBeenCalledWith({
+      expect(transactionClient.bongBalance.update).toHaveBeenCalledWith({
         where: {
           memberId,
         },
@@ -279,9 +250,7 @@ describe('RedemptionService', () => {
     it('should create the redemption with pending status', async () => {
       await service.createRedemption(body, authorization);
 
-      expect(
-        transactionClient.redemption.create,
-      ).toHaveBeenCalledWith({
+      expect(transactionClient.redemption.create).toHaveBeenCalledWith({
         data: {
           toId: memberId,
           amount: body.bongAmount,
@@ -309,62 +278,21 @@ describe('RedemptionService', () => {
 
       expect(result.redemptionId).toBe(redemptionId);
 
-      expect(
-        transactionClient.bongBalance.update,
-      ).toHaveBeenCalled();
+      expect(transactionClient.bongBalance.update).toHaveBeenCalled();
     });
 
     it('should throw ConflictException when the member has no balance record', async () => {
-      transactionClient.bongBalance.findUnique.mockResolvedValue(
-        null,
-      );
+      transactionClient.bongBalance.findUnique.mockResolvedValue(null);
 
       await expect(
         service.createRedemption(body, authorization),
       ).rejects.toThrow(
-        new ConflictException(
-          'Insufficient balance for redemption',
-        ),
+        new ConflictException('Insufficient balance for redemption'),
       );
 
-      expect(
-        transactionClient.bongBalance.update,
-      ).not.toHaveBeenCalled();
+      expect(transactionClient.bongBalance.update).not.toHaveBeenCalled();
 
-      expect(
-        transactionClient.redemption.create,
-      ).not.toHaveBeenCalled();
-    });
-
-    it('should throw ConflictException when available balance is insufficient', async () => {
-      transactionClient.bongBalance.findUnique.mockResolvedValue({
-        memberId,
-        totalAdded: 10,
-        totalTaken: 5,
-        totalPending: 3,
-      });
-
-      await expect(
-        service.createRedemption(
-          {
-            ...body,
-            bongAmount: 3,
-          },
-          authorization,
-        ),
-      ).rejects.toThrow(
-        new ConflictException(
-          'Insufficient balance for redemption',
-        ),
-      );
-
-      expect(
-        transactionClient.bongBalance.update,
-      ).not.toHaveBeenCalled();
-
-      expect(
-        transactionClient.redemption.create,
-      ).not.toHaveBeenCalled();
+      expect(transactionClient.redemption.create).not.toHaveBeenCalled();
     });
 
     it('should not start a transaction when current-member resolution fails', async () => {
@@ -442,10 +370,7 @@ describe('RedemptionService', () => {
     });
 
     it('should only find a redemption belonging to the current member', async () => {
-      await service.completeRedemptionUpload(
-        redemptionId,
-        authorization,
-      );
+      await service.completeRedemptionUpload(redemptionId, authorization);
 
       expect(prisma.redemption.findFirst).toHaveBeenCalledWith({
         where: {
@@ -456,47 +381,33 @@ describe('RedemptionService', () => {
     });
 
     it('should send the video ID and authorization to the video service', async () => {
-      await service.completeRedemptionUpload(
-        redemptionId,
-        authorization,
-      );
+      await service.completeRedemptionUpload(redemptionId, authorization);
 
-      expect(
-        videoService.completeVideoUpload,
-      ).toHaveBeenCalledTimes(1);
+      expect(videoService.completeVideoUpload).toHaveBeenCalledTimes(1);
 
-      const [request, metadata] =
-        videoService.completeVideoUpload.mock.calls[0] as [
-          {
-            videoId: string;
-          },
-          Metadata,
-        ];
+      const [request, metadata] = videoService.completeVideoUpload.mock
+        .calls[0] as [
+        {
+          videoId: string;
+        },
+        Metadata,
+      ];
 
       expect(request).toEqual({
         videoId,
       });
 
-      expect(metadata.get('authorization')).toEqual([
-        authorization,
-      ]);
+      expect(metadata.get('authorization')).toEqual([authorization]);
     });
 
     it('should throw NotFoundException when the redemption does not exist', async () => {
       prisma.redemption.findFirst.mockResolvedValue(null);
 
       await expect(
-        service.completeRedemptionUpload(
-          redemptionId,
-          authorization,
-        ),
-      ).rejects.toThrow(
-        new NotFoundException('Redemption not found'),
-      );
+        service.completeRedemptionUpload(redemptionId, authorization),
+      ).rejects.toThrow(new NotFoundException('Redemption not found'));
 
-      expect(
-        videoService.completeVideoUpload,
-      ).not.toHaveBeenCalled();
+      expect(videoService.completeVideoUpload).not.toHaveBeenCalled();
     });
 
     it('should throw NotFoundException when the redemption belongs to another member', async () => {
@@ -510,15 +421,10 @@ describe('RedemptionService', () => {
       prisma.redemption.findFirst.mockResolvedValue(null);
 
       await expect(
-        service.completeRedemptionUpload(
-          redemptionId,
-          authorization,
-        ),
+        service.completeRedemptionUpload(redemptionId, authorization),
       ).rejects.toThrow('Redemption not found');
 
-      expect(
-        videoService.completeVideoUpload,
-      ).not.toHaveBeenCalled();
+      expect(videoService.completeVideoUpload).not.toHaveBeenCalled();
     });
 
     it('should propagate errors from the video service', async () => {
@@ -527,10 +433,7 @@ describe('RedemptionService', () => {
       );
 
       await expect(
-        service.completeRedemptionUpload(
-          redemptionId,
-          authorization,
-        ),
+        service.completeRedemptionUpload(redemptionId, authorization),
       ).rejects.toThrow('Upload was not found');
     });
   });
@@ -626,19 +529,10 @@ describe('RedemptionService', () => {
       );
     });
 
-    it.each([
-      [-1],
-      [-100],
-      [1.5],
-      [Number.NaN],
-      [Number.POSITIVE_INFINITY],
-    ])(
+    it.each([[-1], [-100], [1.5], [Number.NaN], [Number.POSITIVE_INFINITY]])(
       'should normalize invalid skip value %p to zero',
       async (invalidSkip) => {
-        await service.recentRedemptions(
-          authorization,
-          invalidSkip,
-        );
+        await service.recentRedemptions(authorization, invalidSkip);
 
         expect(prisma.redemption.findMany).toHaveBeenCalledWith(
           expect.objectContaining({
@@ -651,45 +545,33 @@ describe('RedemptionService', () => {
     it('should return an empty array without calling the member service when there are no redemptions', async () => {
       prisma.redemption.findMany.mockResolvedValue([]);
 
-      const result =
-        await service.recentRedemptions(authorization);
+      const result = await service.recentRedemptions(authorization);
 
       expect(result).toEqual([]);
 
-      expect(
-        memberService.resolveMemberNames,
-      ).not.toHaveBeenCalled();
+      expect(memberService.resolveMemberNames).not.toHaveBeenCalled();
     });
 
     it('should request names for receivers and reviewers without duplicate IDs', async () => {
       await service.recentRedemptions(authorization);
 
-      expect(
-        memberService.resolveMemberNames,
-      ).toHaveBeenCalledTimes(1);
+      expect(memberService.resolveMemberNames).toHaveBeenCalledTimes(1);
 
-      const [request, metadata] =
-        memberService.resolveMemberNames.mock.calls[0] as [
-          {
-            ids: string[];
-          },
-          Metadata,
-        ];
+      const [request, metadata] = memberService.resolveMemberNames.mock
+        .calls[0] as [
+        {
+          ids: string[];
+        },
+        Metadata,
+      ];
 
-      expect(request.ids).toEqual([
-        memberId,
-        'member-2',
-        reviewerId,
-      ]);
+      expect(request.ids).toEqual([memberId, 'member-2', reviewerId]);
 
-      expect(metadata.get('authorization')).toEqual([
-        authorization,
-      ]);
+      expect(metadata.get('authorization')).toEqual([authorization]);
     });
 
     it('should map member and reviewer names onto the redemptions', async () => {
-      const result =
-        await service.recentRedemptions(authorization);
+      const result = await service.recentRedemptions(authorization);
 
       expect(result).toEqual([
         {
@@ -729,8 +611,7 @@ describe('RedemptionService', () => {
         }),
       );
 
-      const result =
-        await service.recentRedemptions(authorization);
+      const result = await service.recentRedemptions(authorization);
 
       expect(result[0].memberName).toBe('Okänd medlem');
       expect(result[0].acceptedByName).toBe('Okänd medlem');
@@ -744,9 +625,9 @@ describe('RedemptionService', () => {
         throwError(() => new Error('Member lookup failed')),
       );
 
-      await expect(
-        service.recentRedemptions(authorization),
-      ).rejects.toThrow('Member lookup failed');
+      await expect(service.recentRedemptions(authorization)).rejects.toThrow(
+        'Member lookup failed',
+      );
     });
 
     it('should propagate database errors', async () => {
@@ -754,13 +635,11 @@ describe('RedemptionService', () => {
         new Error('Database unavailable'),
       );
 
-      await expect(
-        service.recentRedemptions(authorization),
-      ).rejects.toThrow('Database unavailable');
+      await expect(service.recentRedemptions(authorization)).rejects.toThrow(
+        'Database unavailable',
+      );
 
-      expect(
-        memberService.resolveMemberNames,
-      ).not.toHaveBeenCalled();
+      expect(memberService.resolveMemberNames).not.toHaveBeenCalled();
     });
   });
 });

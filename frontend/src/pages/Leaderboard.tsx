@@ -1,6 +1,7 @@
 import { authFetch } from "../auth/authFetch";
 import Navbar from "../components/Navbar";
 import { useEffect, useState } from "react";
+const apiUrl = import.meta.env.VITE_API_URL ?? "";
 
 type LeaderboardEntry = {
   name: string;
@@ -15,7 +16,7 @@ function Leaderboard() {
 
   useEffect(() => {
     async function getLeaderboardAdd() {
-      const response = await authFetch("http://localhost:3001/api/leaderboard/add");
+      const response = await authFetch(`${apiUrl}/api/leaderboard/add`);
 
       if (!response.ok) {
         throw new Error("Failed to fetch leaderboard");
@@ -26,7 +27,7 @@ function Leaderboard() {
     };
 
     async function getLeaderboardRedeem() {
-      const response = await authFetch("http://localhost:3001/api/leaderboard/redeem");
+      const response = await authFetch(`${apiUrl}/api/leaderboard/redeem`);
 
       if (!response.ok) {
         throw new Error("Failed to fetch leaderboard");

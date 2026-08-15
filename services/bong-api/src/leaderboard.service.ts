@@ -1,5 +1,9 @@
-import { ConflictException, HttpException, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
-import type { AuthenticatedUser } from '@valhall/auth';
+import {
+  HttpException,
+  Inject,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { PrismaService } from './prisma.service';
 import { Metadata } from '@grpc/grpc-js';
 import { firstValueFrom, Observable } from 'rxjs';
@@ -19,18 +23,18 @@ interface MemberGrpcService {
   ): Observable<{ members: MemberName[] }>;
 }
 type LeaderboardRow =
-    | {
+  | {
       memberId: string;
       totalAdded: number;
     }
-    | {
+  | {
       memberId: string;
       totalTaken: number;
     };
 
 @Injectable()
 export class LeaderboardService {
-private memberService!: MemberGrpcService;
+  private memberService!: MemberGrpcService;
   constructor(
     private readonly prisma: PrismaService,
     @Inject('MEMBER_PACKAGE')
@@ -39,9 +43,7 @@ private memberService!: MemberGrpcService;
 
   onModuleInit() {
     this.memberService =
-      this.memberClient.getService<MemberGrpcService>(
-        'MemberService',
-      );
+      this.memberClient.getService<MemberGrpcService>('MemberService');
   }
 
   async getLeaderboard(authorization: string, type: LeaderboardType) {
@@ -51,27 +53,27 @@ private memberService!: MemberGrpcService;
       });
     }
     const members = (await this.prisma.bongBalance.findMany({
-        orderBy:
-            type === 'add'
-            ? { totalAdded: 'desc' }
-            : { totalTaken: 'desc' },
-        take: 20,
-        select: type === 'add'
-        ? {
-            memberId: true,
-            totalAdded: true,
-          }
-        : {
-            memberId: true,
-            totalTaken: true,
-        },
+      orderBy: type === 'add' ? { totalAdded: 'desc' } : { totalTaken: 'desc' },
+      take: 20,
+      select:
+        type === 'add'
+          ? {
+              memberId: true,
+              totalAdded: true,
+            }
+          : {
+              memberId: true,
+              totalTaken: true,
+            },
     })) as LeaderboardRow[];
 
     const memberIds = members.map((member) => member.memberId);
 
     const memberNames = await this.resolveMemberNames(memberIds, authorization);
 
-    const names = new Map(memberNames.map((member) => [member.id, member.name]));
+    const names = new Map(
+      memberNames.map((member) => [member.id, member.name]),
+    );
 
     return members.map((member) => {
       return {
@@ -81,28 +83,28 @@ private memberService!: MemberGrpcService;
     });
   }
 
-   private async resolveMemberNames(
-       ids: string[],
-       authorization: string,
-     ): Promise<MemberName[]> {
-       try {
-         const response = await firstValueFrom(
-           this.memberService.resolveMemberNames(
-             { ids },
-             this.buildMetadata(authorization),
-           ),
-         );
-         return response.members;
-       } catch (error: unknown) {
-         const grpcError = this.toGrpcError(error);
-         throw new HttpException(
-           'Could not load recent activity',
-           this.mapGrpcToHttpStatus(grpcError.code),
-         );
-       }
-     }
+  private async resolveMemberNames(
+    ids: string[],
+    authorization: string,
+  ): Promise<MemberName[]> {
+    try {
+      const response = await firstValueFrom(
+        this.memberService.resolveMemberNames(
+          { ids },
+          this.buildMetadata(authorization),
+        ),
+      );
+      return response.members;
+    } catch (error: unknown) {
+      const grpcError = this.toGrpcError(error);
+      throw new HttpException(
+        'Could not load recent activity',
+        this.mapGrpcToHttpStatus(grpcError.code),
+      );
+    }
+  }
 
-    private toGrpcError(error: unknown): { code: number; details?: string } {
+  private toGrpcError(error: unknown): { code: number; details?: string } {
     if (typeof error !== 'object' || error === null) {
       return { code: 13 };
     }
@@ -117,19 +119,19 @@ private memberService!: MemberGrpcService;
     return details ? { code, details } : { code };
   }
 
-    private mapGrpcToHttpStatus(grpcCode: number): number {
-        const map: Record<number, number> = {
-        3: 400,
-        5: 404,
-        7: 403,
-        16: 401,
-        };
-        return map[grpcCode] ?? 500;
-    }
+  private mapGrpcToHttpStatus(grpcCode: number): number {
+    const map: Record<number, number> = {
+      3: 400,
+      5: 404,
+      7: 403,
+      16: 401,
+    };
+    return map[grpcCode] ?? 500;
+  }
 
-    private buildMetadata(authorization: string): Metadata {
+  private buildMetadata(authorization: string): Metadata {
     const metadata = new Metadata();
     metadata.add('authorization', authorization);
     return metadata;
-    }
+  }
 }

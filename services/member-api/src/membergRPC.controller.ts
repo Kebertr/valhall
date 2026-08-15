@@ -44,7 +44,7 @@ export class MemberGrpcController {
 
   @UseGuards(auth.GrpcJwtAuthGuard)
   @GrpcMethod('MemberService', 'ListShotTargets')
-  async findShotTargets(@auth.CurrentUser() user: AuthenticatedUser) {
+  async findShotTargets() {
     const members = await this.memberService.findShotTargets();
 
     return { members };

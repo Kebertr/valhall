@@ -17,15 +17,10 @@ type VideoIdRequest = {
 @Controller()
 @UseGuards(GrpcJwtAuthGuard)
 export class VideoGrpcController {
-  constructor(
-    private readonly videoService: MinioVideoService,
-  ) {}
+  constructor(private readonly videoService: MinioVideoService) {}
 
   @GrpcMethod('VideoService', 'GetPostUpload')
-  async getPostUpload(
-    request: GetPostUploadRequest,
-    metadata: Metadata,
-  ) {
+  async getPostUpload(request: GetPostUploadRequest, metadata: Metadata) {
     const authorization = this.getAuthorization(metadata);
 
     const upload = await this.videoService.createUploadPost(
@@ -43,10 +38,7 @@ export class VideoGrpcController {
   }
 
   @GrpcMethod('VideoService', 'CompleteVideoUpload')
-  async completeVideoUpload(
-    request: VideoIdRequest,
-    metadata: Metadata,
-  ) {
+  async completeVideoUpload(request: VideoIdRequest, metadata: Metadata) {
     const authorization = this.getAuthorization(metadata);
 
     const video = await this.videoService.completeUpload(
@@ -60,10 +52,7 @@ export class VideoGrpcController {
   }
 
   @GrpcMethod('VideoService', 'VerifyUploadedVideo')
-  async verifyUploadedVideo(
-    request: VideoIdRequest,
-    metadata: Metadata,
-  ) {
+  async verifyUploadedVideo(request: VideoIdRequest, metadata: Metadata) {
     const authorization = this.getAuthorization(metadata);
 
     return this.videoService.verifyUploadedVideo(
@@ -73,8 +62,7 @@ export class VideoGrpcController {
   }
 
   private getAuthorization(metadata: Metadata): string {
-    const authorization =
-      metadata.get('authorization')[0]?.toString();
+    const authorization = metadata.get('authorization')[0]?.toString();
 
     if (!authorization) {
       throw new RpcException({

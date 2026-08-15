@@ -7,7 +7,12 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiCreatedResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiCreatedResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { RedemptionService } from './redemption.service';
 import { CreateRedemptionDto } from './dto/redemption.dto';
 import { JwtAuthGuard } from '@valhall/auth';
@@ -22,7 +27,10 @@ export class RedemptionController {
   @ApiOperation({ summary: 'Create a redemption request' })
   @ApiCreatedResponse({ description: 'Redemption request created' })
   @ApiBearerAuth('keycloak')
-  createRedemption(@Body() body: CreateRedemptionDto, @Headers('authorization') authorization: string) {
+  createRedemption(
+    @Body() body: CreateRedemptionDto,
+    @Headers('authorization') authorization: string,
+  ) {
     return this.redemptionService.createRedemption(body, authorization);
   }
 
@@ -30,8 +38,14 @@ export class RedemptionController {
   @ApiOperation({ summary: 'Complete the redemption upload' })
   @ApiCreatedResponse({ description: 'Redemption upload completed' })
   @ApiBearerAuth('keycloak')
-  completeRedemptionUpload(@Body('redemptionId') redemptionId: string, @Headers('authorization') authorization: string) {
-    return this.redemptionService.completeRedemptionUpload(redemptionId, authorization);
+  completeRedemptionUpload(
+    @Body('redemptionId') redemptionId: string,
+    @Headers('authorization') authorization: string,
+  ) {
+    return this.redemptionService.completeRedemptionUpload(
+      redemptionId,
+      authorization,
+    );
   }
 
   @Get('redemption/recent')
