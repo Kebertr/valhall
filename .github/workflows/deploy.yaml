@@ -70,6 +70,7 @@ jobs:
         run: |
           pnpm --filter bong-api exec prisma generate
           pnpm --filter member-api exec prisma generate
+          pnpm --filter videos-api exec prisma generate
 
       - name: Build shared auth package
         run: pnpm build:auth
