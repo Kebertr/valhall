@@ -27,7 +27,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v5
         with:
-          node-version: 24
+          node-version: 26.5.0
           cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
 
