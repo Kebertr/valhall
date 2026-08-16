@@ -11,7 +11,7 @@ permissions:
 jobs:
   frontend:
     name: Frontend checks
-    runs-on: valhall
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
@@ -43,7 +43,7 @@ jobs:
 
   backend:
     name: Backend checks
-    runs-on: valhall
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
