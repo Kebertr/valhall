@@ -84,14 +84,14 @@ jobs:
       - name: Lint member API
         run: pnpm --filter member-api lint
 
-      - name: Test bong API
-        run: pnpm --filter bong-api test
+      - name: Test member API
+        run: pnpm --filter member-api test
 
-      - name: Lint member API
-        run: pnpm --filter member-api lint
+      - name: Lint videos API
+        run: pnpm --filter videos-api lint
 
-      - name: Test bong API
-        run: pnpm --filter bong-api test
+      - name: Test videos API
+        run: pnpm --filter videos-api test
       
       - name: Build backend workspaces
         run: pnpm build
@@ -142,7 +142,7 @@ jobs:
 
           if echo "$CHANGED" | grep -Eq '^(frontend/|package.json|pnpm-lock.yaml)'; then
             docker build \
-              --target frontend-runtime
+              --target frontend-runtime \
               --build-arg VITE_API_URL=$VITE_API_URL \
               --build-arg VITE_KEYCLOAK_URL=$VITE_KEYCLOAK_URL \
               --build-arg VITE_KEYCLOAK_REALM=$VITE_KEYCLOAK_REALM \
@@ -155,7 +155,7 @@ jobs:
 
           if echo "$CHANGED" | grep -Eq '^(services/bong-api/|package.json|pnpm-lock.yaml)'; then
             docker build \
-              --target bong-runtime
+              --target bong-runtime \
               -f Dockerfile \
               -t ghcr.io/kebertr/valhall-bong-api:${IMAGE_TAG} \
               .
@@ -164,7 +164,7 @@ jobs:
 
           if echo "$CHANGED" | grep -Eq '^(services/member-api/|packages/auth/|package.json|pnpm-lock.yaml)'; then
             docker build \
-              --target member-runtime
+              --target member-runtime \
               -f Dockerfile \
               -t ghcr.io/kebertr/valhall-member-api:${IMAGE_TAG} \
               .
@@ -173,9 +173,9 @@ jobs:
 
           if echo "$CHANGED" | grep -Eq '^(services/videos-api/|packages/auth/|package.json|pnpm-lock.yaml)'; then
             docker build \
-              --target videos-runtime
+              --target videos-runtime \
               -f Dockerfile \
-              -t ghcr.io/kebertr/valhall-videos-api:${IMAGE_TAG} \
+              -t ghcr.io/kebertr/valhall-video-api:${IMAGE_TAG} \
               .
-            docker push ghcr.io/kebertr/valhall-videos-api:${IMAGE_TAG}
+            docker push ghcr.io/kebertr/valhall-video-api:${IMAGE_TAG}
           fi
