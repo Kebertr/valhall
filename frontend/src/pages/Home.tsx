@@ -162,7 +162,7 @@ function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white pb-24">
-      <Navbar />
+      <Navbar showHome={false} />
 
       <main className="px-4 pt-16">
         <div className="rounded-3xl border border-blue-900/30 bg-slate-800/90 p-5 shadow-2xl">

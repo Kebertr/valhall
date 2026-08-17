@@ -80,6 +80,7 @@ describe("Navbar", () => {
     const { container } = render(<Navbar />);
     const sidebar = within(getSidebar(container));
 
+    await user.click(sidebar.getByRole("button", { name: "Hem" }));
     await user.click(sidebar.getByLabelText("Add shot from menu"));
     await user.click(sidebar.getByRole("button", { name: "Bli av med bong" }));
     await user.click(sidebar.getByRole("button", { name: "Topplista" }));
@@ -89,6 +90,7 @@ describe("Navbar", () => {
     await user.click(sidebar.getByRole("button", { name: "Notiser" }));
     await user.click(sidebar.getByRole("button", { name: "Redigera profil" }));
 
+    expect(mockNavigate).toHaveBeenCalledWith("/");
     expect(mockNavigate).toHaveBeenCalledWith("/add");
     expect(mockNavigate).toHaveBeenCalledWith("/redeem");
     expect(mockNavigate).toHaveBeenCalledWith("/leaderboard");

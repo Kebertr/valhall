@@ -5,7 +5,11 @@ import LogoutButton from "../auth/LogoutButton";
 import { hasAnyRole } from "../auth/roles";
 import NavbarIdentity from "./NavbarIdentity";
 
-function Navbar() {
+type NavbarProps = {
+  showHome?: boolean;
+};
+
+function Navbar({ showHome = true }: NavbarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const navigate = useNavigate();
 
@@ -33,6 +37,15 @@ function Navbar() {
         </div>
 
         <nav className="flex flex-col p-4">
+          {showHome && (
+            <button
+              onClick={() => goTo("/")}
+              className="rounded-xl p-3 text-left hover:bg-slate-700"
+            >
+              Hem
+            </button>
+          )}
+
           <button
             aria-label="Add shot from menu"
             onClick={() => goTo("/add")}

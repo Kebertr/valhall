@@ -1,7 +1,11 @@
 {
   "name": "valhall",
   "private": true,
+  "version": "0.0.3",
   "packageManager": "pnpm@11.17.0",
+  "engines": {
+    "node": ">=24"
+  },
   "workspaces": [
     "packages/*",
     "services/*",
