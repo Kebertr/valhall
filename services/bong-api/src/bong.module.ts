@@ -14,6 +14,8 @@ import { LeaderboardService } from './leaderboard.service';
 import { LeaderboardController } from './leaderboard.controller';
 import { RecentService } from './recent.service';
 import { RecentController } from './recent.controller';
+import { PrometheusController } from './prometheus.controller';
+import { PrometheusService } from './prometheus.service';
 
 @Module({
   imports: [
@@ -54,6 +56,7 @@ import { RecentController } from './recent.controller';
     BongmeisterController,
     LeaderboardController,
     RecentController,
+    PrometheusController
   ],
   providers: [
     BongService,
@@ -62,6 +65,7 @@ import { RecentController } from './recent.controller';
     BongmeisterService,
     LeaderboardService,
     RecentService,
+    PrometheusService,
   ],
 })
 export class BongModule {}

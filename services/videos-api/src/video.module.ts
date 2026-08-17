@@ -9,6 +9,8 @@ import { MinioVideoController } from './minio-video.controller';
 import { MinioVideoService } from './minio-video.service';
 import { PrismaService } from './prisma.service';
 import { VideoGrpcController } from './video-grpc.controller';
+import { PrometheusController } from './prometheus.controller';
+import { PrometheusService } from './prometheus.service';
 
 @Module({
   imports: [
@@ -30,7 +32,7 @@ import { VideoGrpcController } from './video-grpc.controller';
       },
     ]),
   ],
-  controllers: [MinioVideoController, VideoGrpcController],
+  controllers: [MinioVideoController, VideoGrpcController, PrometheusController],
   providers: [
     {
       provide: MINIO_TOKEN,
@@ -46,6 +48,7 @@ import { VideoGrpcController } from './video-grpc.controller';
     },
     MinioVideoService,
     PrismaService,
+    PrometheusService,
   ],
 })
 export class VideosModule {}

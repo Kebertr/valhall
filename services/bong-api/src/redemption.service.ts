@@ -108,7 +108,7 @@ export class RedemptionService {
         });
 
         if (!balance) {
-          throw new ConflictException('Insufficient balance for redemption');
+          throw new ConflictException('Mästaren måste lägga till dig');
         }
 
         await base.bongBalance.update({

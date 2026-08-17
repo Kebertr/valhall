@@ -6,10 +6,12 @@ import { ConfigModule } from '@nestjs/config';
 import { AuthModule } from '@valhall/auth';
 import { MemberLinkService } from './member-link.service';
 import { MemberGrpcController } from './membergRPC.controller';
+import { PrometheusController } from './prometheus.controller';
+import { PrometheusService } from './prometheus.service';
 
 @Module({
   imports: [ConfigModule.forRoot({ isGlobal: true }), AuthModule],
-  controllers: [MemberController, MemberGrpcController],
-  providers: [MemberService, MemberLinkService, PrismaService],
+  controllers: [MemberController, MemberGrpcController, PrometheusController],
+  providers: [MemberService, MemberLinkService, PrismaService, PrometheusService],
 })
 export class MemberModule {}
