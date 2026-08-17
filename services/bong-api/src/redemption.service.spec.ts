@@ -287,7 +287,7 @@ describe('RedemptionService', () => {
       await expect(
         service.createRedemption(body, authorization),
       ).rejects.toThrow(
-        new ConflictException('Insufficient balance for redemption'),
+        new ConflictException('Mästaren måste lägga till dig'),
       );
 
       expect(transactionClient.bongBalance.update).not.toHaveBeenCalled();
