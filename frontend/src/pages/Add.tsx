@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import "../App.css";
 import { useNavigate } from "react-router-dom";
 import { authFetch } from "../auth/authFetch";
@@ -134,19 +134,17 @@ function AddShot() {
     }
   }
 
-  const matchingMembers = useMemo(() => {
-    const query = memberQuery.trim().toLocaleLowerCase();
-
-    if (!query || selectedMember) {
-      return [];
-    }
-
-    return members
-      .filter((member) =>
-        `${member.name} ${member.godname}`.toLocaleLowerCase().includes(query),
-      )
-      .slice(0, 8);
-  }, [memberQuery, members, selectedMember]);
+  const query = memberQuery.trim().toLocaleLowerCase();
+  const matchingMembers =
+    !query || selectedMember
+      ? []
+      : members
+          .filter((member) =>
+            `${member.name} ${member.godname}`
+              .toLocaleLowerCase()
+              .includes(query),
+          )
+          .slice(0, 8);
 
   async function handleLoadMoreActivities() {
     if (isLoadingMoreActivities) return;
@@ -200,15 +198,13 @@ function AddShot() {
       return;
     }
 
-    const updated = (await response.json()) as RecentActivity;
     setActivities((current) =>
       current.map((item) =>
         item.id === activity.id
           ? {
               ...item,
-              amount: updated.amount,
-              reason: updated.reason,
-              status: updated.status,
+              amount: reviewedAmount ?? item.amount,
+              status: action === "APPROVE" ? "APPROVED" : "DENIED",
             }
           : item,
       ),

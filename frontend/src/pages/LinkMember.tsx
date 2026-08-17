@@ -54,6 +54,14 @@ function LinkMember() {
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-950 px-4 text-white">
+      <button
+        type="button"
+        onClick={() => navigate('/')}
+        className="absolute left-4 top-4 rounded-xl bg-slate-800 px-4 py-3 font-semibold transition hover:bg-slate-700"
+      >
+        Hem
+      </button>
+
       <section className="w-full max-w-lg rounded-3xl border border-slate-700 bg-slate-800 p-8 text-center shadow-2xl">
         <h1 className="text-3xl font-bold text-blue-400">
           Connect member account
