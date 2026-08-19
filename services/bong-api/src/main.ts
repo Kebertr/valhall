@@ -2,9 +2,23 @@ import { NestFactory } from '@nestjs/core';
 import { RequestMethod, ValidationPipe } from '@nestjs/common';
 import { BongModule } from './bong.module';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import promBundle from 'express-prom-bundle';
+import { PrometheusService } from './prometheus.service';
 
 async function bootstrap() {
   const app = await NestFactory.create(BongModule);
+
+  const prometheusService = app.get(PrometheusService);
+
+  app.use(
+    promBundle({
+      includeMethod: true,
+      includePath: true,
+      includeStatusCode: true,
+      promRegistry: prometheusService.register,
+      autoregister: false,
+    }),
+  );
   app.useGlobalPipes(
     new ValidationPipe({
       transform: true,

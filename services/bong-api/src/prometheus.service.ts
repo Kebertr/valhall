@@ -3,15 +3,22 @@ import * as client from 'prom-client';
 
 @Injectable()
 export class PrometheusService {
-  private readonly register: client.Registry;
-
+   readonly register = new client.Registry();
   constructor() {
-    this.register = new client.Registry();
-    this.register.setDefaultLabels({ app: 'nestjs-prometheus' });
-    client.collectDefaultMetrics({ register: this.register });
+    this.register.setDefaultLabels({
+      service: process.env.SERVICE_NAME ?? 'bong-api',
+    });
+
+    client.collectDefaultMetrics({
+      register: this.register,
+    });
   }
 
   getMetrics(): Promise<string> {
     return this.register.metrics();
+  }
+
+  getContentType(): string {
+    return this.register.contentType;
   }
 }
