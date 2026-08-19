@@ -11,6 +11,8 @@ import { PrismaService } from './prisma.service';
 import { VideoGrpcController } from './video-grpc.controller';
 import { PrometheusController } from './prometheus.controller';
 import { PrometheusService } from './prometheus.service';
+import { GrpcMetricsService } from './grpc-metrics.service';
+import { GrpcMetricsInterceptor } from './grpc-metrics.interceptor';
 
 @Module({
   imports: [
@@ -49,6 +51,8 @@ import { PrometheusService } from './prometheus.service';
     MinioVideoService,
     PrismaService,
     PrometheusService,
+    GrpcMetricsInterceptor,
+    GrpcMetricsService
   ],
 })
 export class VideosModule {}

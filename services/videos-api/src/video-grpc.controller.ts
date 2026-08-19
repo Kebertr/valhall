@@ -1,8 +1,9 @@
-import { Controller, UseGuards } from '@nestjs/common';
+import { Controller, UseGuards, UseInterceptors } from '@nestjs/common';
 import { Metadata, status } from '@grpc/grpc-js';
 import { GrpcMethod, RpcException } from '@nestjs/microservices';
 import { GrpcJwtAuthGuard } from '@valhall/auth';
 import { MinioVideoService } from './minio-video.service';
+import { GrpcMetricsInterceptor } from './grpc-metrics.interceptor';
 
 type GetPostUploadRequest = {
   filename: string;
@@ -16,6 +17,7 @@ type VideoIdRequest = {
 
 @Controller()
 @UseGuards(GrpcJwtAuthGuard)
+@UseInterceptors(GrpcMetricsInterceptor)
 export class VideoGrpcController {
   constructor(private readonly videoService: MinioVideoService) {}
 
