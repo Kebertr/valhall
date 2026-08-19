@@ -4,9 +4,23 @@ import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { VideosModule } from './video.module';
 import { join } from 'path';
+import { PrometheusService } from './prometheus.service';
+import promBundle from 'express-prom-bundle';
 
 async function bootstrap() {
   const app = await NestFactory.create(VideosModule);
+
+  const prometheusService = app.get(PrometheusService);
+
+  app.use(
+    promBundle({
+      includeMethod: true,
+      includePath: true,
+      includeStatusCode: true,
+      promRegistry: prometheusService.register,
+      autoregister: false,
+    }),
+  );
 
   app.connectMicroservice<MicroserviceOptions>({
     transport: Transport.GRPC,
@@ -49,3 +63,4 @@ async function bootstrap() {
   await app.listen(process.env.PORT ?? 3003);
 }
 void bootstrap();
+

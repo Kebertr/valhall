@@ -4,10 +4,24 @@ import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { join } from 'node:path';
 import { MemberModule } from './member.module';
+import { PrometheusService } from './prometheus.service';
+import promBundle from 'express-prom-bundle';
 
 async function bootstrap() {
   const app = await NestFactory.create(MemberModule);
 
+  const prometheusService = app.get(PrometheusService);
+
+  app.use(
+    promBundle({
+      includeMethod: true,
+      includePath: true,
+      includeStatusCode: true,
+      promRegistry: prometheusService.register,
+      autoregister: false,
+    }),
+  );
+  
   //This is for gRPC communication between the micro services
   app.connectMicroservice<MicroserviceOptions>({
     transport: Transport.GRPC,
@@ -61,3 +75,4 @@ async function bootstrap() {
 }
 
 void bootstrap();
+
