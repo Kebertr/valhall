@@ -15,11 +15,11 @@ import { CreateShotDto } from './dto/bong.dto';
 @Controller()
 @ApiTags('Shots')
 @ApiBearerAuth('keycloak')
+@UseGuards(JwtAuthGuard)
 export class BongController {
   constructor(private readonly bongService: BongService) {}
 
   @Post('add')
-  @UseGuards(JwtAuthGuard)
   addShot(
     @Body() body: CreateShotDto,
     @Headers('authorization') authorization: string,
@@ -28,7 +28,6 @@ export class BongController {
   }
 
   @Get('add/recent')
-  @UseGuards(JwtAuthGuard)
   recentActivity(
     @Headers('authorization') authorization: string,
     @Query('skip') skip?: string,

@@ -1,6 +1,5 @@
-// src/dto/create-shot.dto.ts
 import { ApiProperty } from '@nestjs/swagger';
-import { IsInt, IsString, IsUUID, Min } from 'class-validator';
+import { IsInt, IsOptional, IsString, IsUUID, Min } from 'class-validator';
 
 export class CreateShotDto {
   @ApiProperty({

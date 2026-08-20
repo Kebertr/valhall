@@ -21,6 +21,11 @@
     "start:member": "pnpm --filter member-api start:dev",
     "start:bong": "pnpm --filter bong-api start:dev",
     "start:frontend": "pnpm --filter frontend dev",
-    "start:videos": "pnpm --filter videos-api start:dev"
+    "start:videos": "pnpm --filter videos-api start:dev",
+    "proto:generate": "protoc --ts_proto_out=./packages/contracts/ --ts_proto_opt=nestJs=true,returnObservable=true,addGrpcMetadata=true -I ./proto ./proto/*.proto"
+  },
+  "devDependencies": {
+    "protobufjs": "^8.7.2",
+    "ts-proto": "^2.12.0"
   }
 }

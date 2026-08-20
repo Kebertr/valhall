@@ -8,32 +8,11 @@ import type { ClientGrpc } from '@nestjs/microservices';
 import { Metadata } from '@grpc/grpc-js';
 import { Observable, firstValueFrom } from 'rxjs';
 import { PrismaService } from './prisma.service';
-
-type ShotParticipants = {
-  fromId: string;
-  toId: string;
-};
-
-type MemberName = {
-  id: string;
-  name: string;
-};
-
-interface MemberGrpcService {
-  resolveShotParticipants(
-    data: { targetMemberRecordId: string },
-    metadata: Metadata,
-  ): Observable<ShotParticipants>;
-
-  resolveMemberNames(
-    data: { ids: string[] },
-    metadata: Metadata,
-  ): Observable<{ members: MemberName[] }>;
-}
+import type { MemberServiceClient, MemberName, ResolveShotParticipantsResponse } from '@valhall/contracts'
 
 @Injectable()
 export class BongService implements OnModuleInit {
-  private memberService!: MemberGrpcService;
+  private memberService!: MemberServiceClient;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -42,7 +21,7 @@ export class BongService implements OnModuleInit {
 
   onModuleInit() {
     this.memberService =
-      this.client.getService<MemberGrpcService>('MemberService');
+      this.client.getService<MemberServiceClient>('MemberService');
   }
 
   async addShot(
@@ -51,6 +30,7 @@ export class BongService implements OnModuleInit {
   ) {
     const participants = await this.resolveParticipants(body.Id, authorization);
 
+    
     await this.prisma.add.create({
       data: {
         toId: participants.toId,
@@ -132,7 +112,7 @@ export class BongService implements OnModuleInit {
   private async resolveParticipants(
     targetMemberRecordId: string,
     authorization: string,
-  ): Promise<ShotParticipants> {
+  ): Promise<ResolveShotParticipantsResponse> {
     try {
       return await firstValueFrom(
         this.memberService.resolveShotParticipants(
