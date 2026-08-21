@@ -14,5 +14,11 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.videoProtobufPackage = exports.protobufPackage = void 0;
 __exportStar(require("./member"), exports);
 __exportStar(require("./video"), exports);
+__exportStar(require("./grpcToHttp"), exports);
+var member_1 = require("./member");
+Object.defineProperty(exports, "protobufPackage", { enumerable: true, get: function () { return member_1.protobufPackage; } });
+var video_1 = require("./video");
+Object.defineProperty(exports, "videoProtobufPackage", { enumerable: true, get: function () { return video_1.protobufPackage; } });

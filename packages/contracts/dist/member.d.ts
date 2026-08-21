@@ -1,10 +1,10 @@
 import type { Metadata } from "@grpc/grpc-js";
 import { Observable } from "rxjs";
 export declare const protobufPackage = "member";
-export interface ResolveShotParticipantsRequest {
+export interface ResolvePenaltyParticipantsRequest {
     targetMemberRecordId: string;
 }
-export interface ResolveShotParticipantsResponse {
+export interface ResolvePenaltyParticipantsResponse {
     fromId: string;
     toId: string;
 }
@@ -23,28 +23,28 @@ export interface ResolveCurrentMemberRequest {
 export interface ResolveCurrentMemberResponse {
     id: string;
 }
-export interface ListShotTargetsRequest {
+export interface ListPenaltyTargetsRequest {
 }
-export interface ShotTarget {
+export interface PenaltyTarget {
     id: string;
     name: string;
     godname: string;
 }
-export interface ListShotTargetsResponse {
-    members: ShotTarget[];
+export interface ListPenaltyTargetsResponse {
+    members: PenaltyTarget[];
 }
 export declare const MEMBER_PACKAGE_NAME = "member";
 export interface MemberServiceClient {
-    resolveShotParticipants(request: ResolveShotParticipantsRequest, metadata?: Metadata): Observable<ResolveShotParticipantsResponse>;
+    resolvePenaltyParticipants(request: ResolvePenaltyParticipantsRequest, metadata?: Metadata): Observable<ResolvePenaltyParticipantsResponse>;
     resolveMemberNames(request: ResolveMemberNamesRequest, metadata?: Metadata): Observable<ResolveMemberNamesResponse>;
     resolveCurrentMember(request: ResolveCurrentMemberRequest, metadata?: Metadata): Observable<ResolveCurrentMemberResponse>;
-    listShotTargets(request: ListShotTargetsRequest, metadata?: Metadata): Observable<ListShotTargetsResponse>;
+    listPenaltyTargets(request: ListPenaltyTargetsRequest, metadata?: Metadata): Observable<ListPenaltyTargetsResponse>;
 }
 export interface MemberServiceController {
-    resolveShotParticipants(request: ResolveShotParticipantsRequest, metadata?: Metadata): Observable<ResolveShotParticipantsResponse>;
+    resolvePenaltyParticipants(request: ResolvePenaltyParticipantsRequest, metadata?: Metadata): Observable<ResolvePenaltyParticipantsResponse>;
     resolveMemberNames(request: ResolveMemberNamesRequest, metadata?: Metadata): Observable<ResolveMemberNamesResponse>;
     resolveCurrentMember(request: ResolveCurrentMemberRequest, metadata?: Metadata): Observable<ResolveCurrentMemberResponse>;
-    listShotTargets(request: ListShotTargetsRequest, metadata?: Metadata): Observable<ListShotTargetsResponse>;
+    listPenaltyTargets(request: ListPenaltyTargetsRequest, metadata?: Metadata): Observable<ListPenaltyTargetsResponse>;
 }
 export declare function MemberServiceControllerMethods(): (constructor: Function) => void;
 export declare const MEMBER_SERVICE_NAME = "MemberService";

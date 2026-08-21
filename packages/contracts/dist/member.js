@@ -13,10 +13,10 @@ exports.MEMBER_PACKAGE_NAME = "member";
 function MemberServiceControllerMethods() {
     return function (constructor) {
         const grpcMethods = [
-            "resolveShotParticipants",
+            "resolvePenaltyParticipants",
             "resolveMemberNames",
             "resolveCurrentMember",
-            "listShotTargets",
+            "listPenaltyTargets",
         ];
         for (const method of grpcMethods) {
             const descriptor = Reflect.getOwnPropertyDescriptor(constructor.prototype, method);
