@@ -3,8 +3,8 @@ syntax = "proto3";
 package member;
 
 service MemberService {
-  rpc ResolveShotParticipants(ResolveShotParticipantsRequest)
-    returns (ResolveShotParticipantsResponse);
+  rpc ResolvePenaltyParticipants(ResolvePenaltyParticipantsRequest)
+    returns (ResolvePenaltyParticipantsResponse);
 
   rpc ResolveMemberNames(ResolveMemberNamesRequest)
     returns (ResolveMemberNamesResponse);
@@ -12,15 +12,15 @@ service MemberService {
   rpc ResolveCurrentMember(ResolveCurrentMemberRequest)
     returns (ResolveCurrentMemberResponse);
 
-  rpc ListShotTargets(ListShotTargetsRequest)
-    returns (ListShotTargetsResponse);
+  rpc ListPenaltyTargets(ListPenaltyTargetsRequest)
+    returns (ListPenaltyTargetsResponse);
 }
 
-message ResolveShotParticipantsRequest {
+message ResolvePenaltyParticipantsRequest {
   string target_member_record_id = 1;
 }
 
-message ResolveShotParticipantsResponse {
+message ResolvePenaltyParticipantsResponse {
   string from_id = 1;
   string to_id = 2;
 }
@@ -44,15 +44,15 @@ message ResolveCurrentMemberResponse {
   string id = 1;
 }
 
-message ListShotTargetsRequest {}
+message ListPenaltyTargetsRequest {}
 
-message ShotTarget {
+message PenaltyTarget {
   string id = 1;
   string name = 2;
   string godname = 3;
 }
 
-message ListShotTargetsResponse {
-  repeated ShotTarget members = 1;
+message ListPenaltyTargetsResponse {
+  repeated PenaltyTarget members = 1;
 }
 
