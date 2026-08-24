@@ -54,26 +54,31 @@ export class PenaltyService implements OnModuleInit {
   ) {
     const participants = await this.resolveParticipants(body.Id, authorization);
 
-    await this.prisma.add.create({
+    const createdPenalty = await this.prisma.add.create({
       data: {
         toId: participants.toId,
+        fromId: participants.fromId,
         amount: body.amount,
         reason: body.reason,
-        fromId: participants.fromId,
+      },
+      select: {
+        id: true,
+        fromId: true,
+        toId: true,
+        acceptedId: true,
+        amount: true,
+        reason: true,
+        status: true,
+        createdAt: true,
       },
     });
 
-    return {
-      ok: true,
-      message: `Added ${body.Id}`,
-      received: {
-        Id: body.Id,
-        amount: body.amount,
-        reason: body.reason,
-        status: approveStatus.PENDING,
-        createdAt: new Date().toISOString(),
-      },
-    };
+    const members = await this.resolveMemberNames(
+      [createdPenalty.fromId, createdPenalty.toId],
+      authorization,
+    );
+
+    return this.toReturnPenalty(createdPenalty, members)
   }
 
   async recentActivity(authorization: string, skip = 0) {

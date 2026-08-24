@@ -51,13 +51,13 @@ export class BongmeisterService {
     }
 
     if (penalty.status !== approveStatus.PENDING) {
-      throw new BadRequestException('Penaltyen har redan hanterats');
+      throw new BadRequestException('Den har redan hanterats');
     }
 
     const approved = body.action === PenaltyAction.APPROVE;
     const reviewer = await this.resolveCurrentMember(authorization);
 
-    await this.prisma.$transaction(async (base) => {
+    return await this.prisma.$transaction(async (base) => {
       const finalAmount = body.amount ?? penalty.amount;
 
       await base.add.update({
@@ -102,7 +102,7 @@ export class BongmeisterService {
     }
 
     if (penalty.status !== approveStatus.PENDING) {
-      throw new BadRequestException('Penaltyen har redan hanterats');
+      throw new BadRequestException('Den har redan hanterats');
     }
 
     const approved = body.action === PenaltyAction.APPROVE;

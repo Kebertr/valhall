@@ -47,43 +47,6 @@ const devProxy = {
   },
 };
 
-const previewProxy = {
-  "/api/members": {
-    target: "http://member-api:3002",
-    changeOrigin: true,
-  },
-
-  "/api/member": {
-    target: "http://member-api:3002",
-    changeOrigin: true,
-  },
-
-  "/api/add": {
-    target: "http://bong-api:3001",
-    changeOrigin: true,
-  },
-  "/api/bongmeister": {
-    target: "http://bong-api:3001",
-    changeOrigin: true,
-  },
-  "/api/redemption": {
-    target: "http://bong-api:3001",
-    changeOrigin: true,
-  },
-  "/api/recent": {
-    target: "http://bong-api:3001",
-    changeOrigin: true,
-  },
-  "/api/files": {
-    target: "http://videos-api:3003",
-    changeOrigin: true,
-  },
-  "/api/leaderboard": {
-    target: "http://bong-api:3001",
-    changeOrigin: true,
-  },
-};
-
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
@@ -103,11 +66,5 @@ export default defineConfig({
   ],
   server: {
     proxy: devProxy,
-  },
-  preview: {
-    host: true,
-    port: 5173,
-    proxy: previewProxy,
-    allowedHosts: ["valhall.kebert.se", "dev-valhall.kebert.se"],
   },
 });
