@@ -26,7 +26,7 @@ import { GrpcMetricsInterceptor } from './grpc-metrics.interceptor';
           transport: Transport.GRPC,
           options: {
             package: 'member',
-            protoPath: join(process.cwd(), '../../proto/member/member.proto'),
+            protoPath: join(process.cwd(), '../../proto/member.proto'),
             url: config.get<string>('MEMBER_GRPC_URL') ?? 'localhost:50051',
           },
         }),

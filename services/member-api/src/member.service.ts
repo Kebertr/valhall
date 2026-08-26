@@ -57,7 +57,7 @@ export class MemberService {
     });
   }
 
-  findShotTargets() {
+  findPenaltyTargets() {
     return this.prisma.member.findMany({
       where: { status: 'GUD' },
       orderBy: { godname: 'asc' },
@@ -105,7 +105,7 @@ export class MemberService {
     });
   }
 
-  async resolveShotParticipants(
+  async resolvePenaltyParticipants(
     targetMemberRecordId: string,
     user: AuthenticatedUser,
   ) {
@@ -127,14 +127,14 @@ export class MemberService {
     if (sender.id === target.id) {
       throw new RpcException({
         code: GrpcStatus.INVALID_ARGUMENT, // 3
-        details: 'You cannot give shots to yourself',
+        details: 'You cannot give penalties to yourself',
       });
     }
 
     if (target.status !== 'GUD') {
       throw new RpcException({
         code: GrpcStatus.INVALID_ARGUMENT, // 3
-        details: 'Only GUD members can receive shots',
+        details: 'Only GUD members can receive penalties',
       });
     }
 

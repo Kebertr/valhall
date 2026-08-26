@@ -9,7 +9,7 @@ type ResolveMemberNamesRequest = {
   ids: string[];
 };
 
-type ResolveShotParticipantsRequest = {
+type ResolvePenaltyParticipantsRequest = {
   targetMemberRecordId: string;
 };
 
@@ -26,12 +26,12 @@ export class MemberGrpcController {
     return { members };
   }
 
-  @GrpcMethod('MemberService', 'ResolveShotParticipants')
-  resolveShotParticipants(
-    @Payload() request: ResolveShotParticipantsRequest,
+  @GrpcMethod('MemberService', 'ResolvePenaltyParticipants')
+  resolvePenaltyParticipants(
+    @Payload() request: ResolvePenaltyParticipantsRequest,
     @auth.CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.memberService.resolveShotParticipants(
+    return this.memberService.resolvePenaltyParticipants(
       request.targetMemberRecordId,
       user,
     );
@@ -42,9 +42,9 @@ export class MemberGrpcController {
     return this.memberService.resolveCurrentMember(user);
   }
   
-  @GrpcMethod('MemberService', 'ListShotTargets')
-  async findShotTargets() {
-    const members = await this.memberService.findShotTargets();
+  @GrpcMethod('MemberService', 'ListPenaltyTargets')
+  async findPenaltyTargets() {
+    const members = await this.memberService.findPenaltyTargets();
 
     return { members };
   }

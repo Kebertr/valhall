@@ -26,7 +26,7 @@ async function bootstrap() {
     transport: Transport.GRPC,
     options: {
       package: 'member',
-      protoPath: join(process.cwd(), '../../proto/member/member.proto'),
+      protoPath: join(process.cwd(), '../../proto/member.proto'),
       url: process.env.VIDEO_GRPC_BIND_URL ?? '0.0.0.0:50052',
     },
   });

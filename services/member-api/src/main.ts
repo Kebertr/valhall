@@ -21,13 +21,13 @@ async function bootstrap() {
       autoregister: false,
     }),
   );
-  
+
   //This is for gRPC communication between the micro services
   app.connectMicroservice<MicroserviceOptions>({
     transport: Transport.GRPC,
     options: {
       package: 'member',
-      protoPath: join(process.cwd(), '../../proto/member/member.proto'),
+      protoPath: join(process.cwd(), '../../proto/member.proto'),
       url: process.env.GRPC_URL ?? '0.0.0.0:50051',
       loader: {
         keepCase: false,

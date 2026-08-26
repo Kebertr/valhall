@@ -6,7 +6,7 @@ export class PrometheusService {
    readonly register = new client.Registry();
   constructor() {
     this.register.setDefaultLabels({
-      service: process.env.SERVICE_NAME ?? 'bong-api',
+      service: process.env.SERVICE_NAME ?? 'penalty-api',
     });
 
     client.collectDefaultMetrics({
