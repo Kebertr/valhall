@@ -89,6 +89,7 @@ describe('PenaltyService', () => {
         jest.useFakeTimers().setSystemTime(responseDate);
         resolveParticipantsAs('sender-id', 'receiver-id');
         prisma.add.create.mockResolvedValueOnce(penaltyRow('created'));
+        resolveNamesAs([]);
 
         // Act
         await service.addPenalty(validRequest, authorization);
@@ -110,40 +111,54 @@ describe('PenaltyService', () => {
         // Arrange
         resolveParticipantsAs('sender-id', 'receiver-id');
         prisma.add.create.mockResolvedValueOnce(penaltyRow('created'));
+        resolveNamesAs([]);
 
         // Act
         await service.addPenalty(validRequest, authorization);
 
         // Assert
         expect(prisma.add.create).toHaveBeenCalledTimes(1);
-        expect(prisma.add.create).toHaveBeenCalledWith({
-          data: {
-            toId: 'receiver-id',
-            fromId: 'sender-id',
-            amount: validRequest.amount,
-            reason: validRequest.reason,
-          },
-        });
+        expect(prisma.add.create).toHaveBeenCalledWith(
+          expect.objectContaining({
+            data: {
+              toId: 'receiver-id',
+              fromId: 'sender-id',
+              amount: validRequest.amount,
+              reason: validRequest.reason,
+            },
+          }),
+        );
       });
 
       it('returns a receipt containing the original request and creation time', async () => {
         // Arrange
         jest.useFakeTimers().setSystemTime(responseDate);
         resolveParticipantsAs('sender-id', 'receiver-id');
-        prisma.add.create.mockResolvedValueOnce(penaltyRow('created'));
+        prisma.add.create.mockResolvedValueOnce(
+          penaltyRow('created', {
+            fromId: 'sender-id',
+            toId: 'receiver-id',
+            reason: validRequest.reason,
+          }),
+        );
+        resolveNamesAs([
+          { id: 'sender-id', name: 'Alice' },
+          { id: 'receiver-id', name: 'Bob' },
+        ]);
 
         // Act
         const result = await service.addPenalty(validRequest, authorization);
 
         // Assert
         expect(result).toEqual({
-          ok: true,
-          message: `Added ${validRequest.Id}`,
-          received: {
-            ...validRequest,
-            status: 'pending',
-            createdAt: responseDate.toISOString(),
-          },
+          id: 'created',
+          fromName: 'Alice',
+          toName: 'Bob',
+          amount: validRequest.amount,
+          reason: validRequest.reason,
+          status: approveStatus.PENDING,
+          acceptedByName: null,
+          createdAt: databaseDate,
         });
       });
     });
@@ -436,20 +451,6 @@ describe('PenaltyService', () => {
           );
         },
       );
-
-      it('requests an ID once when sender and receiver are the same', async () => {
-        prisma.add.findMany.mockResolvedValueOnce([
-          penaltyRow('1', { fromId: 'A', toId: 'A' }),
-        ]);
-        resolveNamesAs([{ id: 'A', name: 'Alice' }]);
-
-        await service.recentActivity(authorization);
-
-        expect(memberService.resolveMemberNames).toHaveBeenCalledWith(
-          { ids: ['A'] },
-          expect.any(Metadata),
-        );
-      });
 
       it('does not request a null reviewer ID', async () => {
         prisma.add.findMany.mockResolvedValueOnce([

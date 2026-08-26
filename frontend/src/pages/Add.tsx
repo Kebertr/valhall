@@ -97,7 +97,7 @@ function AddPenalty() {
       try {
         const response = await authFetch("/api/members/penalty-targets");
 
-        if (!response.ok) throw new Error("Failed to fetch members");
+        if (!response.ok) throw new Error("Kunde inte hämta medlemmarna");
 
         const data = (await response.json()) as Member[];
 
@@ -146,11 +146,12 @@ function AddPenalty() {
 
   async function handleLoadMoreActivities() {
     if (isLoadingMoreActivities) return;
+    if(!hasMore){
+      window.alert("Vi har inga fler aktiviteter")
+      return
+    }
 
     try {
-      if(!hasMore){
-        window.alert("Vi har inga fler aktiviteter")
-      }
       setIsLoadingMoreActivities(true);
       const response = await getActivity(nextSkip);
 
@@ -193,12 +194,12 @@ function AddPenalty() {
     const updatedAddition = (await response.json()) as ModerateActivityResponse;
 
     setActivities((current) =>
-      current.map((item) => {
-        if (item.id !== activity.id){
-          return item;
+      current.map((activities) => {
+        if (activities.id !== activity.id){
+          return activities;
         }
         return {
-          ...item,
+          ...activities,
           status: updatedAddition.status,
           amount: updatedAddition.amount,
           acceptedByName: updatedAddition.acceptedByName
@@ -246,6 +247,7 @@ function AddPenalty() {
 
       if (!response.ok) {
         setActivityError("Problem att lägga till straffet")
+        return;
       }
 
       const created = (await response.json()) as Activity;
@@ -254,7 +256,7 @@ function AddPenalty() {
       setMemberQuery("");
       setAmount(1);
       setReason("");
-      setSubmitMessage("Shot added.");
+      setSubmitMessage("Har lagt till en");
       
       setActivities((current) => [
         created,
