@@ -1,16 +1,16 @@
 # Valhall
 
-Valhall is a web application for managing members, bongar, recent activity, account linking, and redemptions.
+Valhall is a web application for managing members, penaltyar, recent activity, account linking, and redemptions.
 
 The project is structured as a pnpm workspace containing a React frontend, NestJS microservices, and a shared authentication package.
 
 ## Architecture
 
-The current service boundaries, database schemas, account-link flow, and shot flow are documented in:
+The current service boundaries, database schemas, account-link flow, and penalty flow are documented in:
 
 [View the architecture documentation](./database-architecture.md)
 
-`bong-api` currently communicates with `member-api` using internal HTTP requests. gRPC and Redis are possible future additions but are not currently implemented.
+`penalty-api` currently communicates with `member-api` using internal HTTP requests. gRPC and Redis are possible future additions but are not currently implemented.
 
 ## Technology
 
@@ -30,7 +30,7 @@ The current service boundaries, database schemas, account-link flow, and shot fl
 
 ```text
 frontend/                  React frontend
-services/bong-api/         Shots, activity and redemption API
+services/penalty-api/         Penaltys, activity and redemption API
 services/member-api/       Members and account-linking API
 packages/auth/             Shared NestJS Keycloak authentication
 docker-compose.yaml        Local application and databases
@@ -58,7 +58,7 @@ Configure the values:
 ```dotenv
 POSTGRES_USER=valhall
 POSTGRES_PASSWORD=change-me
-POSTGRES_DB_BONG=valhall_bong
+POSTGRES_DB_PENALTY=valhall_penalty
 POSTGRES_DB_MEMBER=valhall_member
 
 KEYCLOAK_URL=https://auth.example.com
@@ -177,9 +177,9 @@ pnpm install
 ```
 
 ```bash
-pnpm --filter bong-api add class-validator@^0.15.1
-pnpm --filter bong-api add class-transformer@^0.5.1
-pnpm --filter bong-api add minio
+pnpm --filter penalty-api add class-validator@^0.15.1
+pnpm --filter penalty-api add class-transformer@^0.5.1
+pnpm --filter penalty-api add minio
 pnpm --filter videos-api add @nestjs/config minio
 pnpm --filter videos-api add \
 "@valhall/auth@workspace:*" \
@@ -209,9 +209,9 @@ Services are exposed on:
 | Service | Address |
 | --- | --- |
 | Frontend | `http://localhost:5173` |
-| Bong API | `http://localhost:3001` |
+| Penalty API | `http://localhost:3001` |
 | Member API | `http://localhost:3002` |
-| Bong PostgreSQL | `localhost:5433` |
+| Penalty PostgreSQL | `localhost:5433` |
 | Member PostgreSQL | `localhost:5434` |
 
 Stop the environment:
@@ -233,7 +233,7 @@ Warning: the second command permanently deletes local database data.
 Start the PostgreSQL containers:
 
 ```bash
-docker compose up -d postgres-bong postgres-member
+docker compose up -d postgres-penalty postgres-member
 ```
 
 Run each application in a separate terminal:
@@ -243,7 +243,7 @@ pnpm start:member
 ```
 
 ```bash
-pnpm start:bong
+pnpm start:penalty
 ```
 
 ```bash
@@ -270,7 +270,7 @@ Generate both Prisma clients:
 
 ```bash
 pnpm --filter member-api exec prisma generate
-pnpm --filter bong-api exec prisma generate
+pnpm --filter penalty-api exec prisma generate
 pnpm --filter videos-api exec prisma generate
 ```
 
@@ -278,7 +278,7 @@ Run development migrations from the relevant service:
 
 ```bash
 pnpm --filter member-api exec prisma migrate dev
-pnpm --filter bong-api exec prisma migrate dev
+pnpm --filter penalty-api exec prisma migrate dev
 pnpm --filter videos-api exec prisma migrate dev
 ```
 
@@ -306,18 +306,18 @@ This will probably be changed to a cookie later.
 
 Swagger is available while the APIs are running:
 
-- Bong API: `http://localhost:3001/api/bong/docs`
+- Penalty API: `http://localhost:3001/api/penalty/docs`
 - Member API: `http://localhost:3002/api/member/docs`
 
 Protected endpoints require a Keycloak bearer token.
 
 ## Useful API endpoints
 
-### Bong API
+### Penalty API
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| `POST` | `/api/add` | Add bongar to a member |
+| `POST` | `/api/add` | Add penaltyar to a member |
 | `GET` | `/api/add/recent` | Load recent activity |
 | `POST` | `/api/redemption` | Create a redemption request |
 
@@ -326,9 +326,9 @@ Protected endpoints require a Keycloak bearer token.
 | Method | Path | Purpose |
 | --- | --- | --- |
 | `GET` | `/api/members/gudar` | List members |
-| `GET` | `/api/members/shot-targets` | List valid shot targets |
+| `GET` | `/api/members/penalty-targets` | List valid penalty targets |
 | `POST` | `/api/members/resolve-names` | Resolve member UUIDs to names |
-| `POST` | `/api/members/shot-participants` | Validate shot participants |
+| `POST` | `/api/members/penalty-participants` | Validate penalty participants |
 | `POST` | `/api/members/:memberId/link-invitations` | Create an account-link invitation |
 | `POST` | `/api/members/link` | Consume an account-link invitation |
 
@@ -345,7 +345,7 @@ Build an individual application:
 ```bash
 pnpm build:frontend
 pnpm build:member
-pnpm build:bong
+pnpm build:penalty
 pnpm build:videos
 ```
 
@@ -362,10 +362,14 @@ Run tests for an individual workspace:
 ```bash
 pnpm --filter frontend test
 pnpm --filter member-api test
-pnpm --filter bong-api test
+pnpm --filter penalty-api test
 pnpm --filter @valhall/auth test
 ```
 
+Generate proto files
+```bash
+pnpm proto:generate
+```
 ## Linting
 
 Run frontend linting:
@@ -378,7 +382,7 @@ Run backend linting:
 
 ```bash
 pnpm --filter member-api lint
-pnpm --filter bong-api lint
+pnpm --filter penalty-api lint
 ```
 
 The backend lint commands currently apply automatic fixes.
