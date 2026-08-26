@@ -1,0 +1,58 @@
+syntax = "proto3";
+
+package member;
+
+service MemberService {
+  rpc ResolvePenaltyParticipants(ResolvePenaltyParticipantsRequest)
+    returns (ResolvePenaltyParticipantsResponse);
+
+  rpc ResolveMemberNames(ResolveMemberNamesRequest)
+    returns (ResolveMemberNamesResponse);
+
+  rpc ResolveCurrentMember(ResolveCurrentMemberRequest)
+    returns (ResolveCurrentMemberResponse);
+
+  rpc ListPenaltyTargets(ListPenaltyTargetsRequest)
+    returns (ListPenaltyTargetsResponse);
+}
+
+message ResolvePenaltyParticipantsRequest {
+  string target_member_record_id = 1;
+}
+
+message ResolvePenaltyParticipantsResponse {
+  string from_id = 1;
+  string to_id = 2;
+}
+
+message ResolveMemberNamesRequest {
+  repeated string ids = 1;
+}
+
+message MemberName {
+  string id = 1;
+  string name = 2;
+}
+
+message ResolveMemberNamesResponse {
+  repeated MemberName members = 1;
+}
+
+message ResolveCurrentMemberRequest {}
+
+message ResolveCurrentMemberResponse {
+  string id = 1;
+}
+
+message ListPenaltyTargetsRequest {}
+
+message PenaltyTarget {
+  string id = 1;
+  string name = 2;
+  string godname = 3;
+}
+
+message ListPenaltyTargetsResponse {
+  repeated PenaltyTarget members = 1;
+}
+

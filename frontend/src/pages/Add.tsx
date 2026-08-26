@@ -12,7 +12,14 @@ type Member = {
   avatarUrl: string | null;
 };
 
-type RecentActivity = {
+type ModerateActivityResponse = {
+  id: string;
+  status: "APPROVED" | "DENIED";
+  amount: number;
+  acceptedByName: string;
+};
+
+type Activity = {
   id: string;
   fromName: string;
   toName: string;
@@ -23,13 +30,19 @@ type RecentActivity = {
   createdAt: string;
 };
 
+type ReturnActivity= {
+  returnPenalties: Activity[],
+  nextSkip: number,
+  hasMore: boolean
+}
+
 const statusLabels = {
   PENDING: "Väntar",
   APPROVED: "OK",
   DENIED: "Nekad",
 };
 
-function activityStatus(activity: RecentActivity) {
+function activityStatus(activity: Activity) {
   const label = statusLabels[activity.status];
 
   if (activity.status === "PENDING" || !activity.acceptedByName) {
@@ -39,7 +52,7 @@ function activityStatus(activity: RecentActivity) {
   return `${label} av ${activity.acceptedByName}`;
 }
 
-async function getRecentActivity(skip = 0) {
+async function getActivity(skip = 0) {
   let url;
   if (skip > 0){
     url = `/api/add/recent?skip=${skip}`
@@ -52,21 +65,23 @@ async function getRecentActivity(skip = 0) {
     throw new Error("Failed to fetch recent activity");
   }
 
-  return (await response.json()) as RecentActivity[];
+  return (await response.json()) as ReturnActivity;
 }
 
-function AddShot() {
+function AddPenalty() {
   const [amount, setAmount] = useState(1);
   const [reason, setReason] = useState("");
   const [members, setMembers] = useState<Member[]>([]);
   const [memberQuery, setMemberQuery] = useState("");
+  const [nextSkip, setNextSkip] = useState<number>(0);
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [isLoadingMembers, setIsLoadingMembers] = useState(true);
   const [membersError, setMembersError] = useState<string | null>(null);
   const [submitMessage, setSubmitMessage] = useState<string | null>(null);
-  const [activities, setActivities] = useState<RecentActivity[]>([]);
+  const [activities, setActivities] = useState<Activity[]>([]);
   const [activityError, setActivityError] = useState<string | null>(null);
   const [isLoadingMoreActivities, setIsLoadingMoreActivities] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
   const navigate = useNavigate();
   const roles =
     (
@@ -80,21 +95,15 @@ function AddShot() {
   useEffect(() => {
     async function fetchMembers() {
       try {
-        const response = await authFetch("/api/members/shot-targets");
+        const response = await authFetch("/api/members/penalty-targets");
 
-        if (!response.ok) throw new Error("Failed to fetch members");
+        if (!response.ok) throw new Error("Kunde inte hämta medlemmarna");
 
         const data = (await response.json()) as Member[];
 
           setMembers(data);
-      } catch (error) {
-        if (error instanceof Error){
-            setMembersError(error.message)
-        }else{
-          setMembersError(
-              "Kunde inte ladda in medlem",
-          );
-        }
+      } catch{
+          setMembersError("Kunde inte hämta alla gudar som kan få straff")
       } finally {
         setIsLoadingMembers(false);
       }
@@ -104,114 +113,102 @@ function AddShot() {
   }, []);
 
   useEffect(() => {
-    getRecentActivity()
-      .then((recentActivity) => {
+    getActivity()
+      .then((response) => {
           setActivityError(null);
-          setActivities(recentActivity);
+          setActivities(response.returnPenalties);
+          setNextSkip(response.nextSkip);
+          setHasMore(response.hasMore);
       })
-      .catch((error) => {
-          if (error instanceof Error){
-            setActivityError(error.message)
-          }else{
-            setActivityError(
-                "Kunde inte hämta senaste aktivitet",
-            );
-          }
+      .catch(() => {
+          setActivityError("Kunde inte hämta senaste aktiviteterna!")
       });
   }, []);
 
-  async function refreshRecentActivity() {
-    try {
-      const recentActivity = await getRecentActivity();
-      setActivityError(null);
-      setActivities(recentActivity);
-    } catch (error) {
-      setActivityError(
-        error instanceof Error
-          ? error.message
-          : "Kunde inte hämta senaste aktivitet",
-      );
+  const query = memberQuery.trim().toLocaleLowerCase();
+    function getMatchingMembers(): Member[] {
+    if (!query || selectedMember) {
+      return [];
     }
+
+    return members
+      .filter((member) => {
+        const searchableName =
+          `${member.name} ${member.godname}`.toLocaleLowerCase();
+
+        return searchableName.includes(query);
+      })
+      .slice(0, 8);
   }
 
-  const query = memberQuery.trim().toLocaleLowerCase();
-  const matchingMembers =
-    !query || selectedMember
-      ? []
-      : members
-          .filter((member) =>
-            `${member.name} ${member.godname}`
-              .toLocaleLowerCase()
-              .includes(query),
-          )
-          .slice(0, 8);
+  const matchingMembers = getMatchingMembers();
+
 
   async function handleLoadMoreActivities() {
     if (isLoadingMoreActivities) return;
+    if(!hasMore){
+      window.alert("Vi har inga fler aktiviteter")
+      return
+    }
 
     try {
       setIsLoadingMoreActivities(true);
-      const nextActivities = await getRecentActivity(activities.length);
-      setActivities((current) => [...current, ...nextActivities]);
+      const response = await getActivity(nextSkip);
 
-      if (nextActivities.length === 0) {
-        window.alert("Det finns inga fler aktiviteter.");
-      }
-    } catch (error) {
-      if (error instanceof Error){
-        setActivityError(error.message)
-      }else{
-        setActivityError(
-          "Kunde inte hämta senaste aktivitet",
-        );
-      }
-    } finally {
+      setActivities((current) => [...current, ...response.returnPenalties]);
+
+      setNextSkip(response.nextSkip);
+      setHasMore(response.hasMore);
+    } catch {
+      setActivityError(
+        "Kunde inte hämta senaste aktivitet",
+      );
+    }finally {
       setIsLoadingMoreActivities(false);
     }
   }
 
   async function moderateActivity(
-    activity: RecentActivity,
+    activity: Activity,
     action: "APPROVE" | "REJECT",
     reviewedAmount?: number,
   ) {
     const response = await authFetch(`/api/bongmeister/${activity.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action,
-        ...(reviewedAmount !== undefined
-          ? { amount: reviewedAmount }
-          : {}),
-      }),
+
+      body: JSON.stringify({ action, amount: reviewedAmount}),
     });
 
     if (!response.ok) {
-      const body = (await response.json().catch(() => null)) as {
+      const errorBody = (await response.json().catch(() => null)) as {
         message?: string;
       } | null;
-      if (body?.message){
-        window.alert(body?.message)
-      }else{
-        window.alert("Kunde inte hantera bongen")
-      }
+
+      window.alert(
+        errorBody?.message ?? "Kunde inte ändra bongarna",
+      );
       return;
     }
 
+    const updatedAddition = (await response.json()) as ModerateActivityResponse;
+
     setActivities((current) =>
-      current.map((item) =>
-        item.id === activity.id
-          ? {
-              ...item,
-              amount: reviewedAmount ?? item.amount,
-              status: action === "APPROVE" ? "APPROVED" : "DENIED",
-            }
-          : item,
-      ),
+      current.map((activities) => {
+        if (activities.id !== activity.id){
+          return activities;
+        }
+        return {
+          ...activities,
+          status: updatedAddition.status,
+          amount: updatedAddition.amount,
+          acceptedByName: updatedAddition.acceptedByName
+        }
+      }),
     );
   }
 
-  function editAndApprove(activity: RecentActivity) {
+  function editAndApprove(activity: Activity) {
     const amountText = window.prompt("Antal", String(activity.amount));
     if (amountText === null) return;
 
@@ -224,9 +221,12 @@ function AddShot() {
     void moderateActivity(activity, "APPROVE", reviewedAmount);
   }
 
-  async function handleAddShot() {
-    if (!selectedMember || amount < 1) {
-      setSubmitMessage("Choose a member from the suggestions and an amount.");
+  async function handleAddPenalty() {
+    if (!selectedMember) {
+      setSubmitMessage("Ni måste välja en medlem");
+      return;
+    }else if(amount < 1){
+      setSubmitMessage("Antalet måste minst vara 1");
       return;
     }
 
@@ -246,29 +246,25 @@ function AddShot() {
       });
 
       if (!response.ok) {
-        const body = (await response.json().catch(() => null)) as {
-          message?: string;
-        } | null;
-
-        throw new Error(body?.message ?? "Failed to add shot");
+        setActivityError("Problem att lägga till straffet")
+        return;
       }
 
-      await response.json();
+      const created = (await response.json()) as Activity;
 
       setSelectedMember(null);
       setMemberQuery("");
       setAmount(1);
       setReason("");
-      setSubmitMessage("Shot added.");
-      await refreshRecentActivity();
-    } catch (error) {
-      if (error instanceof Error){
-        setSubmitMessage(error.message)
-      }else{
-        setSubmitMessage(
-            "Kunde inte addera bongen",
-        );
-      }
+      setSubmitMessage("Har lagt till en");
+      
+      setActivities((current) => [
+        created,
+        ...current,
+      ])
+
+    } catch {
+      setSubmitMessage("Kunde inte addera straffet")
     }
   }
   return (
@@ -384,7 +380,7 @@ function AddShot() {
           )}
 
           <button
-            onClick={handleAddShot}
+            onClick={handleAddPenalty}
             disabled={!selectedMember || amount < 1}
             className="
               w-full
@@ -517,4 +513,4 @@ function AddShot() {
   );
 }
 
-export default AddShot;
+export default AddPenalty;

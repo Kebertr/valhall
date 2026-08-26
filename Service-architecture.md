@@ -9,24 +9,24 @@ flowchart LR
     User[User browser]
     Frontend[React frontend]
     Keycloak[Keycloak]
-    BongAPI[Bong API<br/>NestJS :3001]
+    PenaltyAPI[Penalty API<br/>NestJS :3001]
     MemberAPI[Member API<br/>NestJS :3002]
-    BongDB[(Bong PostgreSQL)]
+    PenaltyDB[(Penalty PostgreSQL)]
     MemberDB[(Member PostgreSQL)]
 
     User --> Frontend
     Frontend -->|Login| Keycloak
     Keycloak -->|JWT access token| Frontend
 
-    Frontend -->|REST + JWT<br/>shots, activity, redemptions| BongAPI
+    Frontend -->|REST + JWT<br/>penaltys, activity, redemptions| PenaltyAPI
     Frontend -->|REST + JWT<br/>members and account linking| MemberAPI
 
-    BongAPI -->|Internal HTTP + forwarded JWT| MemberAPI
+    PenaltyAPI -->|Internal HTTP + forwarded JWT| MemberAPI
 
-    BongAPI -->|Prisma| BongDB
+    PenaltyAPI -->|Prisma| PenaltyDB
     MemberAPI -->|Prisma| MemberDB
 
-    BongAPI -->|Validate JWT| Keycloak
+    PenaltyAPI -->|Validate JWT| Keycloak
     MemberAPI -->|Validate JWT| Keycloak
 ```
 
@@ -36,16 +36,16 @@ The React frontend provides the user interface and authenticates users through K
 
 It communicates with the backend services using REST and JSON.
 
-### Bong API
+### Penalty API
 
-The Bong API manages:
+The Penalty API manages:
 
-- Adding bongar
+- Adding penaltyar
 - Recent activity
 - Redemptions
-- Validation of shot senders and recipients through the Member API
+- Validation of penalty senders and recipients through the Member API
 
-The service owns the Bong PostgreSQL database.
+The service owns the Penalty PostgreSQL database.
 
 ### Member API
 
@@ -55,14 +55,14 @@ The Member API manages:
 - Member statuses and roles
 - Keycloak account connections
 - Account-link invitations
-- Shot-target validation
+- Penalty-target validation
 - Resolving member UUIDs to names
 
 The service owns the Member PostgreSQL database.
 
 ### Service communication
 
-The Bong API currently communicates with the Member API using internal HTTP requests.
+The Penalty API currently communicates with the Member API using internal HTTP requests.
 
 The authenticated user's JWT is forwarded in the `Authorization` header so the Member API can validate the request.
 
@@ -80,16 +80,16 @@ Each microservice owns its database. A service should not query another service'
 
 ```mermaid
 flowchart LR
-    BongAPI[Bong API]
+    PenaltyAPI[Penalty API]
     MemberAPI[Member API]
 
-    BongDB[(Bong database)]
+    PenaltyDB[(Penalty database)]
     MemberDB[(Member database)]
 
-    BongAPI -->|Owns and queries| BongDB
+    PenaltyAPI -->|Owns and queries| PenaltyDB
     MemberAPI -->|Owns and queries| MemberDB
 
-    BongAPI -->|Requests member data through API| MemberAPI
+    PenaltyAPI -->|Requests member data through API| MemberAPI
 ```
 
 ## Member database
@@ -145,7 +145,7 @@ Each member can have at most one current account-link record because `memberReco
 
 Deleting a member also deletes its account-link record.
 
-## Bong database
+## Penalty database
 
 ```mermaid
 erDiagram
@@ -180,17 +180,17 @@ Possible approval statuses are:
 
 ### Add
 
-An `Add` row represents bongar given from one member to another.
+An `Add` row represents penaltyar given from one member to another.
 
 - `fromId` is the sender's Member UUID.
 - `toId` is the recipient's Member UUID.
 - `acceptedId` can store the UUID of the member who reviews the entry.
-- `amount` contains the number of bongar.
+- `amount` contains the number of penaltyar.
 - `reason` explains why they were given.
 
 ### Redemption
 
-A `Redemption` row represents a request to redeem bongar.
+A `Redemption` row represents a request to redeem penaltyar.
 
 - `toId` identifies the member associated with the redemption.
 - `acceptedId` can identify the reviewing member.
@@ -200,7 +200,7 @@ A `Redemption` row represents a request to redeem bongar.
 
 ## Cross-service member references
 
-The Bong database stores Member UUIDs, but it does not have foreign-key constraints to the Member database.
+The Penalty database stores Member UUIDs, but it does not have foreign-key constraints to the Member database.
 
 ```mermaid
 flowchart LR
@@ -220,7 +220,7 @@ flowchart LR
 
 These are logical references rather than database-enforced relationships because the records live in separate PostgreSQL databases.
 
-The Bong API asks the Member API to validate UUIDs and resolve member names. This preserves service ownership and prevents the Bong API from accessing the Member database directly.
+The Penalty API asks the Member API to validate UUIDs and resolve member names. This preserves service ownership and prevents the Penalty API from accessing the Member database directly.
 
 ## Account-link flow
 
@@ -248,25 +248,25 @@ sequenceDiagram
     MemberAPI-->>Frontend: Return linked member
 ```
 
-## Adding bongar
+## Adding penaltyar
 
 ```mermaid
 sequenceDiagram
     actor User
     participant Frontend
-    participant BongAPI as Bong API
+    participant PenaltyAPI as Penalty API
     participant MemberAPI as Member API
     participant MemberDB as Member database
-    participant BongDB as Bong database
+    participant PenaltyDB as Penalty database
 
     User->>Frontend: Select member and amount
-    Frontend->>BongAPI: POST /api/add with JWT
-    BongAPI->>MemberAPI: Validate participants with JWT
+    Frontend->>PenaltyAPI: POST /api/add with JWT
+    PenaltyAPI->>MemberAPI: Validate participants with JWT
     MemberAPI->>MemberDB: Find sender by Keycloak ID
     MemberAPI->>MemberDB: Validate target Member UUID
-    MemberAPI-->>BongAPI: Return fromId and toId
-    BongAPI->>BongDB: Create Add row
-    BongAPI-->>Frontend: Return success
+    MemberAPI-->>PenaltyAPI: Return fromId and toId
+    PenaltyAPI->>PenaltyDB: Create Add row
+    PenaltyAPI-->>Frontend: Return success
 ```
 
 ## Planned additions

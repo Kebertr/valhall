@@ -8,8 +8,9 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
 FROM base as backend-dependencies
 COPY packages/auth/package.json ./packages/auth/package.json
+COPY packages/contracts/package.json ./packages/contracts/package.json
 COPY services/videos-api/package.json ./services/videos-api/package.json
-COPY services/bong-api/package.json ./services/bong-api/package.json
+COPY services/penalty-api/package.json ./services/penalty-api/package.json
 COPY services/member-api/package.json ./services/member-api/package.json
 
 RUN pnpm install --frozen-lockfile
@@ -19,40 +20,42 @@ COPY frontend/package.json ./frontend/package.json
 
 RUN pnpm install --filter frontend... --frozen-lockfile
 
-#bong
-FROM backend-dependencies AS bong-build
+#penalty
+FROM backend-dependencies AS penalty-build
 
 COPY packages/auth packages/auth
+COPY packages/contracts packages/contracts
 COPY proto proto
-COPY services/bong-api services/bong-api
+COPY services/penalty-api services/penalty-api
 
-RUN pnpm --filter bong-api exec prisma generate
-RUN pnpm --filter bong-api build
+RUN pnpm --filter penalty-api exec prisma generate
+RUN pnpm --filter penalty-api build
 
-#bong run
-From node:24-alpine AS bong-runtime
+#penalty run
+FROM node:24-alpine AS penalty-runtime
 
-RUN corepack enable
-WORKDIR /app
+WORKDIR /app/services/penalty-api
 
 ENV NODE_ENV=production
 
-COPY --from=bong-build /app/package.json ./
-COPY --from=bong-build /app/pnpm-lock.yaml ./
-COPY --from=bong-build /app/pnpm-workspace.yaml ./
-COPY --from=bong-build /app/node_modules ./node_modules
-COPY --from=bong-build /app/packages ./packages
-COPY --from=bong-build /app/services/bong-api ./services/bong-api
-COPY --from=bong-build /app/proto ./proto
+COPY  --chown=node:node --from=penalty-build /app/node_modules /app/node_modules
+COPY  --chown=node:node --from=penalty-build /app/services/penalty-api/node_modules ./node_modules
+COPY  --chown=node:node --from=penalty-build /app/packages /app/packages
+COPY  --chown=node:node --from=penalty-build /app/services/penalty-api/dist ./dist
+COPY  --chown=node:node --from=penalty-build /app/services/penalty-api/package.json ./package.json
+COPY  --chown=node:node --from=penalty-build /app/proto /app/proto
 
 EXPOSE 3001
 
-CMD ["pnpm", "--filter", "bong-api", "start:docker"]
+USER node
+
+CMD ["node", "dist/src/main.js"]
 
 #member
 FROM backend-dependencies AS member-build
 
 COPY packages/auth packages/auth
+COPY packages/contracts packages/contracts
 COPY proto proto
 COPY services/member-api services/member-api
 
@@ -62,28 +65,28 @@ RUN pnpm --filter member-api build
 #member run
 FROM node:24-alpine AS member-runtime
 
-RUN corepack enable
-
-WORKDIR /app
+WORKDIR /app/services/member-api
 
 ENV NODE_ENV=production
 
-COPY --from=member-build /app/package.json ./
-COPY --from=member-build /app/pnpm-lock.yaml ./
-COPY --from=member-build /app/pnpm-workspace.yaml ./
-COPY --from=member-build /app/node_modules ./node_modules
-COPY --from=member-build /app/packages ./packages
-COPY --from=member-build /app/services/member-api ./services/member-api
-COPY --from=member-build /app/proto ./proto
+COPY  --chown=node:node --from=member-build /app/node_modules /app/node_modules
+COPY  --chown=node:node --from=member-build /app/services/member-api/node_modules ./node_modules
+COPY  --chown=node:node --from=member-build /app/packages /app/packages
+COPY  --chown=node:node --from=member-build /app/services/member-api/dist ./dist
+COPY  --chown=node:node --from=member-build /app/services/member-api/package.json ./package.json
+COPY  --chown=node:node --from=member-build /app/proto /app/proto
 
-EXPOSE 3002
+EXPOSE 3001
 
-CMD ["pnpm", "--filter", "member-api", "start:docker"]
+USER node
+
+CMD ["node", "dist/src/main.js"]
 
 #videos
 FROM backend-dependencies AS videos-build
 
 COPY packages/auth packages/auth
+COPY packages/contracts packages/contracts
 COPY proto proto
 COPY services/videos-api services/videos-api
 
@@ -93,24 +96,22 @@ RUN pnpm --filter videos-api build
 #videos run
 FROM node:24-alpine AS videos-runtime
 
-RUN corepack enable
-
-WORKDIR /app
+WORKDIR /app/services/videos-api
 
 ENV NODE_ENV=production
 
-COPY --from=videos-build /app/package.json ./
-COPY --from=videos-build /app/pnpm-lock.yaml ./
-COPY --from=videos-build /app/pnpm-workspace.yaml ./
-COPY --from=videos-build /app/node_modules ./node_modules
-COPY --from=videos-build /app/packages ./packages
-COPY --from=videos-build /app/services/videos-api ./services/videos-api
-COPY --from=videos-build /app/proto ./proto
+COPY  --chown=node:node --from=videos-build /app/node_modules /app/node_modules
+COPY  --chown=node:node --from=videos-build /app/services/videos-api/node_modules ./node_modules
+COPY  --chown=node:node --from=videos-build /app/packages /app/packages
+COPY  --chown=node:node --from=videos-build /app/services/videos-api/dist ./dist
+COPY  --chown=node:node --from=videos-build /app/services/videos-api/package.json ./package.json
+COPY  --chown=node:node --from=videos-build /app/proto /app/proto
 
-EXPOSE 3003
+EXPOSE 3001
 
-CMD ["pnpm", "--filter", "videos-api", "start:docker"]
+USER node
 
+CMD ["node", "dist/src/main.js"]
 
 #frontend
 FROM frontend-dependencies AS frontend-build
@@ -129,8 +130,7 @@ ENV VITE_KEYCLOAK_CLIENT_ID=$VITE_KEYCLOAK_CLIENT_ID
 
 RUN pnpm --filter frontend build
 
-FROM frontend-build AS frontend-runtime
-
-EXPOSE 5173
-
-CMD ["pnpm", "--filter", "frontend", "run", "preview", "--", "--host", "0.0.0.0"]
+FROM nginx:alpine AS frontend-runtime
+COPY frontend/nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=frontend-build /app/frontend/dist /usr/share/nginx/html
+EXPOSE 80

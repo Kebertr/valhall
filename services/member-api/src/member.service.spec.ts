@@ -107,11 +107,11 @@ describe('MemberService', () => {
     });
   });
 
-  describe('findShotTargets', () => {
-    it('filters shot targets to GUD members ordered by godname', async () => {
+  describe('findPenaltyTargets', () => {
+    it('filters penalty targets to GUD members ordered by godname', async () => {
       prisma.member.findMany.mockResolvedValueOnce([]);
 
-      await service.findShotTargets();
+      await service.findPenaltyTargets();
 
       expect(prisma.member.findMany).toHaveBeenCalledWith({
         where: { status: 'GUD' },
@@ -163,14 +163,14 @@ describe('MemberService', () => {
     });
   });
 
-  describe('resolveShotParticipants', () => {
+  describe('resolvePenaltyParticipants', () => {
     it('returns the sender and GUD target record IDs', async () => {
       prisma.member.findUnique
         .mockResolvedValueOnce({ id: 'sender-id' })
         .mockResolvedValueOnce({ id: 'target-id', status: 'GUD' });
 
       await expect(
-        service.resolveShotParticipants('target-id', user),
+        service.resolvePenaltyParticipants('target-id', user),
       ).resolves.toEqual({
         fromId: 'sender-id',
         toId: 'target-id',
@@ -192,7 +192,7 @@ describe('MemberService', () => {
         .mockResolvedValueOnce({ id: 'target-id', status: 'GUD' });
 
       const error = await captureRpcException(
-        service.resolveShotParticipants('target-id', user),
+        service.resolvePenaltyParticipants('target-id', user),
       );
 
       expect(error.getError()).toEqual({
@@ -208,7 +208,7 @@ describe('MemberService', () => {
         .mockResolvedValueOnce(null);
 
       const error = await captureRpcException(
-        service.resolveShotParticipants('missing-target', user),
+        service.resolvePenaltyParticipants('missing-target', user),
       );
 
       expect(error.getError()).toEqual({
@@ -223,12 +223,12 @@ describe('MemberService', () => {
         .mockResolvedValueOnce({ id: 'target-id', status: 'AS' });
 
       const error = await captureRpcException(
-        service.resolveShotParticipants('target-id', user),
+        service.resolvePenaltyParticipants('target-id', user),
       );
 
       expect(error.getError()).toEqual({
         code: GrpcStatus.INVALID_ARGUMENT,
-        details: 'Only GUD members can receive shots',
+        details: 'Only GUD members can receive penalties',
       });
     });
 
@@ -238,12 +238,12 @@ describe('MemberService', () => {
         .mockResolvedValueOnce({ id: 'same-member-id', status: 'GUD' });
 
       const error = await captureRpcException(
-        service.resolveShotParticipants('same-member-id', user),
+        service.resolvePenaltyParticipants('same-member-id', user),
       );
 
       expect(error.getError()).toEqual({
         code: GrpcStatus.INVALID_ARGUMENT,
-        details: 'You cannot give shots to yourself',
+        details: 'You cannot give penalties to yourself',
       });
     });
   });
