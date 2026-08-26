@@ -14,6 +14,13 @@ import { GrpcMetricsInterceptor } from './grpc-metrics.interceptor';
 @Module({
   imports: [ConfigModule.forRoot({ isGlobal: true }), AuthModule],
   controllers: [MemberController, MemberGrpcController, PrometheusController],
-  providers: [MemberService, MemberLinkService, PrismaService, PrometheusService, GrpcMetricsService, GrpcMetricsInterceptor],
+  providers: [
+    MemberService,
+    MemberLinkService,
+    PrismaService,
+    PrometheusService,
+    GrpcMetricsService,
+    GrpcMetricsInterceptor,
+  ],
 })
 export class MemberModule {}

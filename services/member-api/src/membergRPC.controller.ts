@@ -41,7 +41,7 @@ export class MemberGrpcController {
   resolveCurrentMember(@auth.CurrentUser() user: AuthenticatedUser) {
     return this.memberService.resolveCurrentMember(user);
   }
-  
+
   @GrpcMethod('MemberService', 'ListPenaltyTargets')
   async findPenaltyTargets() {
     const members = await this.memberService.findPenaltyTargets();

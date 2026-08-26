@@ -383,6 +383,7 @@ Run backend linting:
 ```bash
 pnpm --filter member-api lint
 pnpm --filter penalty-api lint
+pnpm --filter videos-api lint
 ```
 
 The backend lint commands currently apply automatic fixes.

@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsInt, IsOptional, IsString, IsUUID, Min } from 'class-validator';
+import { IsInt, IsString, IsUUID, Min } from 'class-validator';
 
 export class CreatePenaltyDto {
   @ApiProperty({

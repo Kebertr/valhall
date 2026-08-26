@@ -104,6 +104,10 @@ describe('PenaltyService', () => {
           memberService.resolvePenaltyParticipants.mock.calls[0][1];
 
         expect(metadata).toBeInstanceOf(Metadata);
+
+        if (!(metadata instanceof Metadata)) {
+          throw new Error('Expected gRPC Metadata');
+        }
         expect(metadata.get('authorization')).toEqual([authorization]);
       });
 
@@ -363,11 +367,11 @@ describe('PenaltyService', () => {
 
         const result = await service.recentActivity(authorization, 6);
 
-        expect(result.returnPenalties.map(({ id }) => id)).toEqual([
-          'A',
-          'B',
-          'C',
-        ]);
+        const returnedIds = result.returnPenalties.map(
+          (penalty: { id: string }) => penalty.id,
+        );
+
+        expect(returnedIds).toEqual(['A', 'B', 'C']);
         expect(result.nextSkip).toBe(9);
         expect(result.hasMore).toBe(true);
 
@@ -403,6 +407,10 @@ describe('PenaltyService', () => {
         const metadata = memberService.resolveMemberNames.mock.calls[0][1];
 
         expect(metadata).toBeInstanceOf(Metadata);
+
+        if (!(metadata instanceof Metadata)) {
+          throw new Error('Expected gRPC Metadata');
+        }
         expect(metadata.get('authorization')).toEqual([authorization]);
       });
 

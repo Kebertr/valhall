@@ -1,17 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import {
-  Counter,
-  Gauge,
-  Histogram,
-} from 'prom-client';
+import { Counter, Gauge, Histogram } from 'prom-client';
 import { PrometheusService } from './prometheus.service';
 
 @Injectable()
 export class GrpcMetricsService {
   readonly started: Counter<'grpc_service' | 'grpc_method'>;
-  readonly handled: Counter<
-    'grpc_service' | 'grpc_method' | 'grpc_code'
-  >;
+  readonly handled: Counter<'grpc_service' | 'grpc_method' | 'grpc_code'>;
   readonly duration: Histogram<'grpc_service' | 'grpc_method'>;
   readonly inFlight: Gauge<'grpc_service' | 'grpc_method'>;
 

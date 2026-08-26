@@ -6,22 +6,14 @@ import {
 } from '@nestjs/common';
 import { status } from '@grpc/grpc-js';
 import { RpcException } from '@nestjs/microservices';
-import {
-  catchError,
-  finalize,
-  Observable,
-  throwError,
-} from 'rxjs';
+import { catchError, finalize, Observable, throwError } from 'rxjs';
 import { GrpcMetricsService } from './grpc-metrics.service';
 
 @Injectable()
 export class GrpcMetricsInterceptor implements NestInterceptor {
   constructor(private readonly metrics: GrpcMetricsService) {}
 
-  intercept(
-    context: ExecutionContext,
-    next: CallHandler,
-  ): Observable<unknown> {
+  intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     if (context.getType() !== 'rpc') {
       return next.handle();
     }

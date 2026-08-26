@@ -34,7 +34,11 @@ import { GrpcMetricsInterceptor } from './grpc-metrics.interceptor';
       },
     ]),
   ],
-  controllers: [MinioVideoController, VideoGrpcController, PrometheusController],
+  controllers: [
+    MinioVideoController,
+    VideoGrpcController,
+    PrometheusController,
+  ],
   providers: [
     {
       provide: MINIO_TOKEN,
@@ -52,7 +56,7 @@ import { GrpcMetricsInterceptor } from './grpc-metrics.interceptor';
     PrismaService,
     PrometheusService,
     GrpcMetricsInterceptor,
-    GrpcMetricsService
+    GrpcMetricsService,
   ],
 })
 export class VideosModule {}

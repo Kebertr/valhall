@@ -14,11 +14,8 @@ import type {
   MemberServiceClient,
   ResolvePenaltyParticipantsResponse,
 } from '@valhall/contracts';
-import { approveStatus, Prisma } from './generated/prisma/client';
-import {
-  mapGrpcToHttpStatus,
-  toGrpcError,
-} from '@valhall/contracts';
+import { Prisma } from './generated/prisma/client';
+import { mapGrpcToHttpStatus, toGrpcError } from '@valhall/contracts';
 
 //This is for not using any as type in getMemberId and toReturnPenalty
 type PenaltyRow = Prisma.AddGetPayload<{
@@ -78,7 +75,7 @@ export class PenaltyService implements OnModuleInit {
       authorization,
     );
 
-    return this.toReturnPenalty(createdPenalty, members)
+    return this.toReturnPenalty(createdPenalty, members);
   }
 
   async recentActivity(authorization: string, skip = 0) {
