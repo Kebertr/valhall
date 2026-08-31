@@ -16,6 +16,7 @@ import type {
 } from '@valhall/contracts';
 import { Prisma } from './generated/prisma/client';
 import { mapGrpcToHttpStatus, toGrpcError } from '@valhall/contracts';
+import { metadata } from 'reflect-metadata/no-conflict';
 
 //This is for not using any as type in getMemberId and toReturnPenalty
 type PenaltyRow = Prisma.AddGetPayload<{
@@ -49,7 +50,10 @@ export class PenaltyService implements OnModuleInit {
     body: { Id: string; amount: number; reason: string },
     authorization: string,
   ) {
-    const participants = await this.resolveParticipants(body.Id, authorization);
+
+    const metadata = this.buildMetadata(authorization);
+
+    const participants = await this.resolveParticipants(body.Id, metadata);
 
     const createdPenalty = await this.prisma.add.create({
       data: {
@@ -72,7 +76,7 @@ export class PenaltyService implements OnModuleInit {
 
     const members = await this.resolveMemberNames(
       [createdPenalty.fromId, createdPenalty.toId],
-      authorization,
+      metadata,
     );
 
     return this.toReturnPenalty(createdPenalty, members);
@@ -82,6 +86,8 @@ export class PenaltyService implements OnModuleInit {
     if (skip < 0) {
       throw new BadRequestException('Skip needs to be larger than 0');
     }
+
+    const metadata = this.buildMetadata(authorization);
 
     const take = 3;
     const penalties = await this.prisma.add.findMany({
@@ -113,7 +119,7 @@ export class PenaltyService implements OnModuleInit {
 
     const memberIds = this.getMemberId(selected);
 
-    const members = await this.resolveMemberNames(memberIds, authorization);
+    const members = await this.resolveMemberNames(memberIds, metadata);
 
     const returnPenalties = selected.map((penalty) =>
       this.toReturnPenalty(penalty, members),
@@ -163,7 +169,7 @@ export class PenaltyService implements OnModuleInit {
 
   private async resolveParticipants(
     targetMemberRecordId: string,
-    authorization: string,
+    authorization: Metadata,
   ): Promise<ResolvePenaltyParticipantsResponse> {
     try {
       //Since this is observable we need firstValueFrom
@@ -171,7 +177,7 @@ export class PenaltyService implements OnModuleInit {
         this.memberService
           .resolvePenaltyParticipants(
             { targetMemberRecordId },
-            this.buildMetadata(authorization),
+            authorization
           )
           //Timeout after 2 seconds
           .pipe(timeout(2000)),
@@ -188,12 +194,12 @@ export class PenaltyService implements OnModuleInit {
 
   private async resolveMemberNames(
     ids: string[],
-    authorization: string,
+    authorization: Metadata,
   ): Promise<MemberName[]> {
     try {
       const response = await firstValueFrom(
         this.memberService
-          .resolveMemberNames({ ids }, this.buildMetadata(authorization))
+          .resolveMemberNames({ ids }, authorization)
           .pipe(timeout(2000)),
       );
       return response.members;
