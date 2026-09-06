@@ -7,7 +7,7 @@ import { PenaltyService } from './penalty.service';
 import { PrismaService } from './prisma.service';
 import { RedemptionService } from './redemption.service';
 import { RedemptionController } from './redemption.controller';
-import { AuthModule } from '@valhall/auth';
+import { AuthModule, RegisteredMemberGuard } from '@valhall/auth';
 import { BongmeisterController } from './bongmeister.controller';
 import { BongmeisterService } from './bongmeister.service';
 import { LeaderboardService } from './leaderboard.service';
@@ -66,6 +66,7 @@ import { PrometheusService } from './prometheus.service';
     LeaderboardService,
     RecentService,
     PrometheusService,
+    RegisteredMemberGuard,
   ],
 })
 export class PenaltyModule {}

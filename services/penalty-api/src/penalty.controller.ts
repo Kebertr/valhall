@@ -7,7 +7,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { JwtAuthGuard } from '@valhall/auth';
+import { JwtAuthGuard, RegisteredMemberGuard } from '@valhall/auth';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { PenaltyService } from './penalty.service';
 import { CreatePenaltyDto } from './dto/penalty.dto';
@@ -15,7 +15,7 @@ import { CreatePenaltyDto } from './dto/penalty.dto';
 @Controller()
 @ApiTags('penalties')
 @ApiBearerAuth('keycloak')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RegisteredMemberGuard)
 export class PenaltyController {
   constructor(private readonly penaltyService: PenaltyService) {}
 
