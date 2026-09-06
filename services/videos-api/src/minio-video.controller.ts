@@ -3,14 +3,16 @@ import {
   Controller,
   Get,
   Headers,
+  HttpCode,
+  HttpStatus,
   Param,
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { MinioVideoService } from './minio-video.service';
 import { JwtAuthGuard } from '@valhall/auth';
-import { CreateVideoUploadDto, VideoUploadCompleteDto } from './dto/videos.dto';
+import { CreateVideoUploadDto, GetVideoUrlsDto, GetVideoUrlsResponseDto, VideoUploadCompleteDto } from './dto/videos.dto';
 
 @ApiTags('Videos')
 @ApiBearerAuth('keycloak')
@@ -49,4 +51,17 @@ export class MinioVideoController {
       authorization,
     );
   }
+
+  @Post('get-Urls')
+  @HttpCode(HttpStatus.OK)
+  @ApiOkResponse({
+    description: 'Playback URLs for the requested videos',
+    type: GetVideoUrlsResponseDto,
+  })
+  getVideosUrls(
+    @Body() body: GetVideoUrlsDto,
+  ){
+    return this.service.getVideoUrls(body.ids);
+  }
+
 }

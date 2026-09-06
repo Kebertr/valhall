@@ -15,6 +15,10 @@ type VideoIdRequest = {
   videoId: string;
 };
 
+type GetVideosUrlsRequest = {
+  videoId: string[];
+};
+
 @Controller()
 @UseGuards(GrpcJwtAuthGuard)
 @UseInterceptors(GrpcMetricsInterceptor)
@@ -74,5 +78,10 @@ export class VideoGrpcController {
     }
 
     return authorization;
+  }
+
+  @GrpcMethod('VideoService', 'GetVideosUrls')
+    getVideosUrls(request: GetVideosUrlsRequest) {
+      return this.videoService.getVideoUrls(request.videoId);
   }
 }

@@ -16,7 +16,6 @@ import type {
 } from '@valhall/contracts';
 import { Prisma } from './generated/prisma/client';
 import { mapGrpcToHttpStatus, toGrpcError } from '@valhall/contracts';
-import { metadata } from 'reflect-metadata/no-conflict';
 
 //This is for not using any as type in getMemberId and toReturnPenalty
 type PenaltyRow = Prisma.AddGetPayload<{

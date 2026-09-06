@@ -55,16 +55,16 @@ export class MinioVideoService {
     const video = await this.prisma.video.findFirst({
       where: {
         id: videoId,
-        status: 'UPLOADED',
       },
       select: {
+        status: true,
         bucket: true,
         objectKey: true,
       },
     });
 
-    if (!video) {
-      throw new NotFoundException('Uploaded video not found');
+    if (!video || video.status !== 'UPLOADED') {
+      return {videoUrl: ''};
     }
 
     const videoUrl = await this.minioService.presignedUrl(
@@ -143,7 +143,6 @@ export class MinioVideoService {
 
     return {
       videoId: video.id,
-      objectName,
       postURL,
       formData,
     };
@@ -184,10 +183,6 @@ export class MinioVideoService {
   async completeUpload(videoId: string, authorization: string) {
     if (!videoId || typeof videoId !== 'string') {
       throw new BadRequestException('videoId is required');
-    }
-
-    if (!authorization?.startsWith('Bearer ')) {
-      throw new BadRequestException('authorization header is required');
     }
 
     const member = await this.resolveCurrentMember(authorization);
@@ -234,5 +229,19 @@ export class MinioVideoService {
         status: true,
       },
     });
+  }
+
+  async getVideoUrls(videoIds: string[]){
+
+    const entries = await Promise.all(
+      videoIds.map(async (videoId): Promise<[string, string]> => {
+        const { videoUrl } = await this.getVideoPlaybackUrl(videoId);
+        return [videoId, videoUrl];
+      }),
+    );
+
+    return {
+      idUrls: Object.fromEntries(entries),
+    }
   }
 }

@@ -12,6 +12,9 @@ service VideoService {
   rpc CompleteVideoUpload(CompleteVideoUploadRequest)
     returns (CompleteVideoUploadResponse);
 
+  rpc GetVideosUrls(GetVideosUrlsRequest)
+    returns (GetVideosUrlsResponse);
+
 }
 
 message VerifyUploadedVideoRequest {
@@ -40,4 +43,12 @@ message CompleteVideoUploadRequest {
 
 message CompleteVideoUploadResponse {
   string video_id = 1;
+}
+
+message GetVideosUrlsRequest {
+  repeated string video_id = 1;
+}
+
+message GetVideosUrlsResponse {
+  map<string, string> id_urls = 1;
 }

@@ -27,11 +27,33 @@ type RecentRedemption = {
   acceptedByName?: string;
 };
 
+type ReturnActivity= {
+  returnPenalties: RecentRedemption[],
+  nextSkip: number,
+  hasMore: boolean
+}
+
 const redemptionStatusLabels = {
   PENDING: "Väntar",
   APPROVED: "OK",
   DENIED: "Nekad",
 };
+
+async function getActivity(skip = 0) {
+  let url;
+  if (skip > 0){
+    url = `/api/add/recent?skip=${skip}`
+  }else{
+    url = "/api/add/recent"
+  }
+  const response = await authFetch(url);
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch recent activity");
+  }
+
+  return (await response.json()) as ReturnActivity;
+}
 
 function Redeem() {
   const [amount, setAmount] = useState(1);
@@ -46,6 +68,7 @@ function Redeem() {
   const [selectedVideo, setSelectedVideo] = useState<RecentRedemption | null>(
     null,
   );
+  const [hasMore, setHasMore] = useState(false);
   const navigate = useNavigate();
   const roles =
     (
@@ -57,23 +80,22 @@ function Redeem() {
     ["ADMIN", "BONGMEISTER"].includes(role.toUpperCase()),
   );
 
-  async function getRecentRedemptions(skip = 0) {
-    let query = "";
-    if (skip < 0) {
-      throw new Error("skip must be a non-negative integer");
-    }else if (skip > 0){
-      query = `?skip=${skip}`;
-    }
-    
-    const response = await authFetch(
-      `${apiUrl}/api/redemption/recent${query}`,
-    );
+  useEffect(() => {
+      getActivity()
+        .then((response) => {
+            setActivityError(null);
+            setRedemptions(response.returnPenalties);
+            setRecentSkip(response.nextSkip);
+            setHasMore(response.hasMore);
+        })
+        .catch(() => {
+            setActivityError("Kunde inte hämta senaste aktiviteterna!")
+        });
+    }, []);
 
-    if (!response.ok) {
-      throw new Error(
-        "Kunde inte hämta senaste bongarna"
-      );
-    }
+  async function getRecentRedemptions(skip = 0) {
+
+    const response = getActivity();
 
     const redemptions = (await response.json()) as RecentRedemptionResponse[];
     const playableRedemptions: RecentRedemption[] = [];
@@ -482,5 +504,3 @@ function Redeem() {
     </div>
   );
 }
-
-export default Redeem;
