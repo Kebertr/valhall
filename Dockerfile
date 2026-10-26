@@ -144,4 +144,4 @@ RUN pnpm --filter frontend build
 FROM nginx:alpine AS frontend-runtime
 COPY frontend/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=frontend-build /app/frontend/dist /usr/share/nginx/html
-EXPOSE 80
+EXPOSE 5173
