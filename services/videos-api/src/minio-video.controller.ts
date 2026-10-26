@@ -12,7 +12,12 @@ import {
 import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { MinioVideoService } from './minio-video.service';
 import { JwtAuthGuard } from '@valhall/auth';
-import { CreateVideoUploadDto, GetVideoUrlsDto, GetVideoUrlsResponseDto, VideoUploadCompleteDto } from './dto/videos.dto';
+import {
+  CreateVideoUploadDto,
+  GetVideoUrlsDto,
+  GetVideoUrlsResponseDto,
+  VideoUploadCompleteDto,
+} from './dto/videos.dto';
 
 @ApiTags('Videos')
 @ApiBearerAuth('keycloak')
@@ -58,10 +63,7 @@ export class MinioVideoController {
     description: 'Playback URLs for the requested videos',
     type: GetVideoUrlsResponseDto,
   })
-  getVideosUrls(
-    @Body() body: GetVideoUrlsDto,
-  ){
+  getVideosUrls(@Body() body: GetVideoUrlsDto) {
     return this.service.getVideoUrls(body.ids);
   }
-
 }

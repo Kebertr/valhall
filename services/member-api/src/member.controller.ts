@@ -22,6 +22,7 @@ import { ResolveMemberNamesDto } from './dto/resolve-member-names.dto';
 import { MemberLinkService } from './member-link.service';
 import { MemberService } from './member.service';
 import { CreateMemberDto } from './dto/create-member.dto';
+import { RegisteredMemberGuard } from './registered-member.guard';
 
 @Controller('members')
 @ApiTags('Members')
@@ -40,7 +41,7 @@ export class MemberController {
   }
 
   @Get('gudar')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RegisteredMemberGuard)
   findAll() {
     return this.memberService.findAll();
   }

@@ -81,7 +81,7 @@ export class VideoGrpcController {
   }
 
   @GrpcMethod('VideoService', 'GetVideosUrls')
-    getVideosUrls(request: GetVideosUrlsRequest) {
-      return this.videoService.getVideoUrls(request.videoId);
+  getVideosUrls(request: GetVideosUrlsRequest) {
+    return this.videoService.getVideoUrls(request.videoId);
   }
 }

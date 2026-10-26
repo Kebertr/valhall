@@ -49,7 +49,6 @@ export class PenaltyService implements OnModuleInit {
     body: { Id: string; amount: number; reason: string },
     authorization: string,
   ) {
-
     const metadata = this.buildMetadata(authorization);
 
     const participants = await this.resolveParticipants(body.Id, metadata);
@@ -174,10 +173,7 @@ export class PenaltyService implements OnModuleInit {
       //Since this is observable we need firstValueFrom
       return await firstValueFrom(
         this.memberService
-          .resolvePenaltyParticipants(
-            { targetMemberRecordId },
-            authorization
-          )
+          .resolvePenaltyParticipants({ targetMemberRecordId }, authorization)
           //Timeout after 2 seconds
           .pipe(timeout(2000)),
       );

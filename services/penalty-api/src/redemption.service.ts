@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   ConflictException,
   HttpException,
   Inject,
@@ -10,11 +9,13 @@ import {
 import { PrismaService } from './prisma.service';
 import type { ClientGrpc } from '@nestjs/microservices';
 import { CreateRedemptionDto } from './dto/redemption.dto';
-import { firstValueFrom, Observable, timeout } from 'rxjs';
+import { firstValueFrom, timeout } from 'rxjs';
 import { Metadata } from '@grpc/grpc-js';
 import { approveStatus } from './generated/prisma/browser';
 import type {
   CompleteVideoUploadResponse,
+  CompleteVideoUploadRequest,
+  GetPostUploadRequest,
   GetPostUploadResponse,
   MemberName,
   MemberServiceClient,
@@ -24,19 +25,17 @@ import type {
 import { mapGrpcToHttpStatus, toGrpcError } from '@valhall/contracts';
 import { Prisma } from './generated/prisma/client';
 
-
-
-type PenaltyRow = Prisma.AddGetPayload<{
+type RedemptionRow = Prisma.RedemptionGetPayload<{
   select: {
     id: true;
     toId: true;
     acceptedId: true;
     amount: true;
+    videoId: true;
     status: true;
     createdAt: true;
   };
 }>;
-
 
 @Injectable()
 export class RedemptionService implements OnModuleInit {
@@ -62,7 +61,14 @@ export class RedemptionService implements OnModuleInit {
 
     const member = await this.resolveCurrentMember(metadata);
 
-    const upload = await this.getPostUpload({filename: body.filename, contentType: body.contentType, sizeBytes: body.sizeBytes}, metadata);
+    const upload = await this.getPostUpload(
+      {
+        filename: body.filename,
+        contentType: body.contentType,
+        sizeBytes: body.sizeBytes,
+      },
+      metadata,
+    );
 
     return this.prisma.$transaction(
       async (base) => {
@@ -74,7 +80,7 @@ export class RedemptionService implements OnModuleInit {
 
         //This is only to make the error clear so we know that bongmeister need to add one to bongbalance
         if (!balance) {
-          throw new ConflictException('Bongmeister has not added this profile');
+          throw new ConflictException('Mästaren måste lägga till dig');
         }
 
         await base.bongBalance.update({
@@ -99,6 +105,7 @@ export class RedemptionService implements OnModuleInit {
 
         return {
           redemptionId: redemption.id,
+          videoId: upload.videoId,
           postUrl: upload.postUrl,
           formData: upload.formData,
         };
@@ -126,19 +133,22 @@ export class RedemptionService implements OnModuleInit {
       throw new NotFoundException('Redemption not found');
     }
 
-    await this.completeVideoUpload({videoId: redemptionId}, metadata)
+    await this.completeVideoUpload({ videoId: redemption.videoId }, metadata);
+
+    return {
+      ok: true,
+      redemptionId: redemption.id,
+      message: 'Redemption upload completed',
+    };
   }
 
   async recentRedemptions(authorization: string, skip = 0) {
-
-    if (skip < 0){
-      throw new BadRequestException("Skip must be larger than 0")
-    }
+    const normalizedSkip = Number.isInteger(skip) && skip >= 0 ? skip : 0;
     const metadata = this.buildMetadata(authorization);
     const take = 3;
     const penalties = await this.prisma.redemption.findMany({
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-      skip,
+      skip: normalizedSkip,
       //We check if there exists one take+1 in the database from the skip position. This is so we know if the client can click more button again
       take: take + 1,
       select: {
@@ -146,6 +156,7 @@ export class RedemptionService implements OnModuleInit {
         toId: true,
         acceptedId: true,
         amount: true,
+        videoId: true,
         status: true,
         createdAt: true,
       },
@@ -171,12 +182,12 @@ export class RedemptionService implements OnModuleInit {
 
     return {
       returnPenalties,
-      nextSkip: skip + selected.length,
+      nextSkip: normalizedSkip + selected.length,
       hasMore,
     };
   }
 
-  private getMemberId(selected: PenaltyRow[]) {
+  private getMemberId(selected: RedemptionRow[]) {
     const memberIds: string[] = [];
     for (const penalty of selected) {
       if (!memberIds.includes(penalty.toId)) memberIds.push(penalty.toId);
@@ -187,17 +198,18 @@ export class RedemptionService implements OnModuleInit {
     return memberIds;
   }
 
-  private toReturnPenalty(penalty: PenaltyRow, members: MemberName[]) {
+  private toReturnPenalty(penalty: RedemptionRow, members: MemberName[]) {
     //Finding the name for each member in the penalty request. Using find since it is at most take*3 entries.
     const receiver = members.find((m) => m.id === penalty.toId);
     const reviewer = members.find((m) => m.id === penalty.acceptedId);
     return {
       id: penalty.id,
-      toName: receiver?.name ?? 'Okänd medlem',
+      memberName: receiver?.name ?? 'Okänd medlem',
       amount: penalty.amount,
       status: penalty.status,
       acceptedByName: reviewer?.name ?? null,
       createdAt: penalty.createdAt,
+      videoId: penalty.videoId,
     };
   }
 
@@ -208,77 +220,67 @@ export class RedemptionService implements OnModuleInit {
   }
 
   private async resolveCurrentMember(
-      authorization: Metadata,
-    ): Promise<ResolveCurrentMemberResponse> {
-      try {
-        //Since this is observable we need firstValueFrom
-        return await firstValueFrom(
-          this.memberService
-            .resolveCurrentMember(
-              authorization
-            )
-            //Timeout after 2 seconds
-            .pipe(timeout(4000)),
-        );
-        //catching and Converting Grpc error to http
-      } catch (error: unknown) {
-        const grpcError = toGrpcError(error);
-        throw new HttpException(
-          grpcError.details ?? 'Could not validate penalty participants',
-          mapGrpcToHttpStatus(grpcError.code),
-        );
-      }
+    metadata: Metadata,
+  ): Promise<ResolveCurrentMemberResponse> {
+    try {
+      return await firstValueFrom(
+        this.memberService
+          .resolveCurrentMember({}, metadata)
+          .pipe(timeout(4000)),
+      );
+    } catch (error: unknown) {
+      const grpcError = toGrpcError(error);
+      throw new HttpException(
+        grpcError.details ??
+          (error instanceof Error
+            ? error.message
+            : 'Could not resolve current member'),
+        mapGrpcToHttpStatus(grpcError.code),
+      );
     }
+  }
 
   private async getPostUpload(
-    {
-          filename,
-          contentType,
-          sizeBytes,
-        },
-      authorization: Metadata,
-    ): Promise<GetPostUploadResponse> {
-      try {
-        return await firstValueFrom(
-          this.videoService
-            .getPostUpload({filename, contentType, sizeBytes},
-              authorization
-            )
-            .pipe(timeout(4000)),
-        );
-        //catching and Converting Grpc error to http
-      } catch (error: unknown) {
-        const grpcError = toGrpcError(error);
-        throw new HttpException(
-          grpcError.details ?? 'Could not validate penalty participants',
-          mapGrpcToHttpStatus(grpcError.code),
-        );
-      }
+    request: GetPostUploadRequest,
+    metadata: Metadata,
+  ): Promise<GetPostUploadResponse> {
+    try {
+      return await firstValueFrom(
+        this.videoService.getPostUpload(request, metadata).pipe(timeout(4000)),
+      );
+    } catch (error: unknown) {
+      const grpcError = toGrpcError(error);
+      throw new HttpException(
+        grpcError.details ??
+          (error instanceof Error
+            ? error.message
+            : 'Could not create video upload'),
+        mapGrpcToHttpStatus(grpcError.code),
+      );
     }
+  }
 
   private async completeVideoUpload(
-    {
-          videoId: videoId,
-        },
-        metadata: Metadata,
-    ): Promise<CompleteVideoUploadResponse> {
-      try {
-        return await firstValueFrom(
-          this.videoService
-            .completeVideoUpload({videoId},
-              metadata
-            )
-            .pipe(timeout(4000)),
-        );
-        //catching and Converting Grpc error to http
-      } catch (error: unknown) {
-        const grpcError = toGrpcError(error);
-        throw new HttpException(
-          grpcError.details ?? 'Could not validate penalty participants',
-          mapGrpcToHttpStatus(grpcError.code),
-        );
-      }
+    request: CompleteVideoUploadRequest,
+    metadata: Metadata,
+  ): Promise<CompleteVideoUploadResponse> {
+    try {
+      return await firstValueFrom(
+        this.videoService
+          .completeVideoUpload(request, metadata)
+          .pipe(timeout(4000)),
+      );
+    } catch (error: unknown) {
+      const grpcError = toGrpcError(error);
+      throw new HttpException(
+        grpcError.details ??
+          (error instanceof Error
+            ? error.message
+            : 'Could not complete video upload'),
+        mapGrpcToHttpStatus(grpcError.code),
+      );
     }
+  }
 
   private async resolveMemberNames(
     ids: string[],
@@ -294,7 +296,10 @@ export class RedemptionService implements OnModuleInit {
     } catch (error: unknown) {
       const grpcError = toGrpcError(error);
       throw new HttpException(
-        grpcError.details ?? 'Could not load recent activity',
+        grpcError.details ??
+          (error instanceof Error
+            ? error.message
+            : 'Could not load recent activity'),
         mapGrpcToHttpStatus(grpcError.code),
       );
     }

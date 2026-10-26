@@ -461,7 +461,7 @@ describe('RedemptionService', () => {
         toId: memberId,
         amount: 2,
         videoId: 'video-1',
-        status: approveStatus.REJECTED,
+        status: approveStatus.DENIED,
         createdAt: new Date('2026-08-04T12:00:00.000Z'),
         acceptedId: reviewerId,
       },
@@ -490,7 +490,7 @@ describe('RedemptionService', () => {
       );
     });
 
-    it('should fetch the three most recent redemptions', async () => {
+    it('should fetch one extra redemption to determine whether more exist', async () => {
       await service.recentRedemptions(authorization);
 
       expect(prisma.redemption.findMany).toHaveBeenCalledWith({
@@ -503,7 +503,7 @@ describe('RedemptionService', () => {
           },
         ],
         skip: 0,
-        take: 3,
+        take: 4,
         select: {
           id: true,
           toId: true,
@@ -522,7 +522,7 @@ describe('RedemptionService', () => {
       expect(prisma.redemption.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           skip: 6,
-          take: 3,
+          take: 4,
         }),
       );
     });
@@ -540,12 +540,16 @@ describe('RedemptionService', () => {
       },
     );
 
-    it('should return an empty array without calling the member service when there are no redemptions', async () => {
+    it('should return an empty page without calling the member service when there are no redemptions', async () => {
       prisma.redemption.findMany.mockResolvedValue([]);
 
       const result = await service.recentRedemptions(authorization);
 
-      expect(result).toEqual([]);
+      expect(result).toEqual({
+        returnPenalties: [],
+        nextSkip: null,
+        hasMore: false,
+      });
 
       expect(memberService.resolveMemberNames).not.toHaveBeenCalled();
     });
@@ -571,35 +575,39 @@ describe('RedemptionService', () => {
     it('should map member and reviewer names onto the redemptions', async () => {
       const result = await service.recentRedemptions(authorization);
 
-      expect(result).toEqual([
-        {
-          id: 'redemption-3',
-          memberName: 'Rasmus',
-          amount: 3,
-          status: approveStatus.PENDING,
-          createdAt: new Date('2026-08-06T12:00:00.000Z'),
-          videoId: 'video-3',
-          acceptedByName: 'Okänd medlem',
-        },
-        {
-          id: 'redemption-2',
-          memberName: 'Anna',
-          amount: 4,
-          status: approveStatus.APPROVED,
-          createdAt: new Date('2026-08-05T12:00:00.000Z'),
-          videoId: 'video-2',
-          acceptedByName: 'Admin',
-        },
-        {
-          id: 'redemption-1',
-          memberName: 'Rasmus',
-          amount: 2,
-          status: approveStatus.REJECTED,
-          createdAt: new Date('2026-08-04T12:00:00.000Z'),
-          videoId: 'video-1',
-          acceptedByName: 'Admin',
-        },
-      ]);
+      expect(result).toEqual({
+        returnPenalties: [
+          {
+            id: 'redemption-3',
+            memberName: 'Rasmus',
+            amount: 3,
+            status: approveStatus.PENDING,
+            createdAt: new Date('2026-08-06T12:00:00.000Z'),
+            videoId: 'video-3',
+            acceptedByName: null,
+          },
+          {
+            id: 'redemption-2',
+            memberName: 'Anna',
+            amount: 4,
+            status: approveStatus.APPROVED,
+            createdAt: new Date('2026-08-05T12:00:00.000Z'),
+            videoId: 'video-2',
+            acceptedByName: 'Admin',
+          },
+          {
+            id: 'redemption-1',
+            memberName: 'Rasmus',
+            amount: 2,
+            status: approveStatus.DENIED,
+            createdAt: new Date('2026-08-04T12:00:00.000Z'),
+            videoId: 'video-1',
+            acceptedByName: 'Admin',
+          },
+        ],
+        nextSkip: 3,
+        hasMore: false,
+      });
     });
 
     it('should use fallback names when members cannot be resolved', async () => {
@@ -611,11 +619,11 @@ describe('RedemptionService', () => {
 
       const result = await service.recentRedemptions(authorization);
 
-      expect(result[0].memberName).toBe('Okänd medlem');
-      expect(result[0].acceptedByName).toBe('Okänd medlem');
+      expect(result.returnPenalties[0].memberName).toBe('Okänd medlem');
+      expect(result.returnPenalties[0].acceptedByName).toBeNull();
 
-      expect(result[1].memberName).toBe('Okänd medlem');
-      expect(result[1].acceptedByName).toBe('Okänd medlem');
+      expect(result.returnPenalties[1].memberName).toBe('Okänd medlem');
+      expect(result.returnPenalties[1].acceptedByName).toBeNull();
     });
 
     it('should propagate errors from the member service', async () => {

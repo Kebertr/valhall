@@ -51,51 +51,47 @@ function Home() {
   const [isLoadingActivities, setIsLoadingActivities] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [oldestTimeStamp, setOldestTimeStamp] = useState<string | null>(null);
-  const [selectedVideo, setSelectedVideo] = useState<
-    Extract<RecentActivity, { type: "REDEMPTION" }> | null
-  >(null);
+  const [selectedVideo, setSelectedVideo] = useState<Extract<
+    RecentActivity,
+    { type: "REDEMPTION" }
+  > | null>(null);
   const navigate = useNavigate();
 
   async function addPlaybackUrls(recent: RecentActivity[]) {
-    const result: RecentActivity[] = [];
-
-    for (const activity of recent) {
-      if (activity.type === "ADD") {
-        result.push(activity);
-        continue;
-      }
-
-      try {
-        const response = await authFetch(
-          `${apiUrl}/api/files/${encodeURIComponent(activity.videoId)}/playback-url`,
-        );
-
-        if (!response.ok) {
-          result.push({
-            ...activity,
-            videoUrl: null,
-          });
-
-          continue;
+    return Promise.all(
+      recent.map(async (activity): Promise<RecentActivity> => {
+        if (activity.type === "ADD") {
+          return activity;
         }
 
-        const data = (await response.json()) as {
-          videoUrl: string;
-        };
+        try {
+          const response = await authFetch(
+            `${apiUrl}/api/files/${encodeURIComponent(activity.videoId)}/playback-url`,
+          );
 
-        result.push({
-          ...activity,
-          videoUrl: data.videoUrl,
-        });
-      } catch {
-        result.push({
-          ...activity,
-          videoUrl: null,
-        });
-      }
-    }
+          if (!response.ok) {
+            return {
+              ...activity,
+              videoUrl: null,
+            };
+          }
 
-    return result;
+          const data = (await response.json()) as {
+            videoUrl: string;
+          };
+
+          return {
+            ...activity,
+            videoUrl: data.videoUrl,
+          };
+        } catch {
+          return {
+            ...activity,
+            videoUrl: null,
+          };
+        }
+      }),
+    );
   }
 
   useEffect(() => {
@@ -113,12 +109,10 @@ function Home() {
         setActivities(activitiesWithVideos);
         setOldestTimeStamp(data.oldestTimeStamp?.createdAt ?? null);
       } catch (error) {
-        if (error instanceof Error){
-          setActivityError(error.message)
-        }else{
-          setActivityError(
-              "Kunde inte hämta senaste aktivitet",
-          );
+        if (error instanceof Error) {
+          setActivityError(error.message);
+        } else {
+          setActivityError("Kunde inte hämta senaste aktivitet");
         }
       } finally {
         setIsLoadingActivities(false);
@@ -148,13 +142,11 @@ function Home() {
       setActivities((current) => [...current, ...activitiesWithVideos]);
       setOldestTimeStamp(data.oldestTimeStamp?.createdAt ?? null);
     } catch (error) {
-      if (error instanceof Error){
-          setActivityError(error.message)
-        }else{
-          setActivityError(
-              "Kunde inte hämta fler aktiviteter",
-          );
-        }
+      if (error instanceof Error) {
+        setActivityError(error.message);
+      } else {
+        setActivityError("Kunde inte hämta fler aktiviteter");
+      }
     } finally {
       setIsLoadingMore(false);
     }
@@ -176,9 +168,11 @@ function Home() {
 
           {activityError && <p className="text-red-300">{activityError}</p>}
 
-          {!isLoadingActivities && !activityError && activities.length === 0 && (
-            <p className="text-slate-400">Det finns ingen aktivitet ännu.</p>
-          )}
+          {!isLoadingActivities &&
+            !activityError &&
+            activities.length === 0 && (
+              <p className="text-slate-400">Det finns ingen aktivitet ännu.</p>
+            )}
 
           <div className="space-y-4">
             {activities.map((activity, index) => (
@@ -206,30 +200,31 @@ function Home() {
                 {/*Add and redemption will look different*/}
                 <div className="min-w-0 flex-1">
                   <div className="flex items-start justify-between gap-4">
-                  <p className="text-lg">
-                    {activity.type === "ADD" ? (
-                      <>
-                        <span className="font-semibold">
-                          {activity.fromName}
-                        </span>
-                        {" gav "}
-                        <span className="font-semibold">
-                          {activity.toName}
-                        </span>
-                        {` ${activity.amount} ${activity.amount === 1 ? "bong" : "bongar"}`}
-                      </>
-                    ) : (
-                      <>
-                        <span className="font-semibold">
-                          {activity.memberName}
-                        </span>
-                        {` vill bli av med ${activity.amount} ${activity.amount === 1 ? "bong" : "bongar"}`}
-                      </>
-                    )}
-                  </p>
+                    <p className="text-lg">
+                      {activity.type === "ADD" ? (
+                        <>
+                          <span className="font-semibold">
+                            {activity.fromName}
+                          </span>
+                          {" gav "}
+                          <span className="font-semibold">
+                            {activity.toName}
+                          </span>
+                          {` ${activity.amount} ${activity.amount === 1 ? "bong" : "bongar"}`}
+                        </>
+                      ) : (
+                        <>
+                          <span className="font-semibold">
+                            {activity.memberName}
+                          </span>
+                          {` vill bli av med ${activity.amount} ${activity.amount === 1 ? "bong" : "bongar"}`}
+                        </>
+                      )}
+                    </p>
 
-                  <span
-                      className={`shrink-0 font-semibold ${statusTextColors[activity.status]}`}>
+                    <span
+                      className={`shrink-0 font-semibold ${statusTextColors[activity.status]}`}
+                    >
                       {statusLabels[activity.status]}
                     </span>
                   </div>

@@ -25,8 +25,8 @@ async function bootstrap() {
   app.connectMicroservice<MicroserviceOptions>({
     transport: Transport.GRPC,
     options: {
-      package: 'member',
-      protoPath: join(process.cwd(), '../../proto/member.proto'),
+      package: 'video',
+      protoPath: join(process.cwd(), '../../proto/video.proto'),
       url: process.env.VIDEO_GRPC_BIND_URL ?? '0.0.0.0:50052',
     },
   });

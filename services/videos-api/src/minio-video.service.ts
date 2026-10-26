@@ -64,7 +64,7 @@ export class MinioVideoService {
     });
 
     if (!video || video.status !== 'UPLOADED') {
-      return {videoUrl: ''};
+      return { videoUrl: '' };
     }
 
     const videoUrl = await this.minioService.presignedUrl(
@@ -231,8 +231,7 @@ export class MinioVideoService {
     });
   }
 
-  async getVideoUrls(videoIds: string[]){
-
+  async getVideoUrls(videoIds: string[]) {
     const entries = await Promise.all(
       videoIds.map(async (videoId): Promise<[string, string]> => {
         const { videoUrl } = await this.getVideoPlaybackUrl(videoId);
@@ -242,6 +241,6 @@ export class MinioVideoService {
 
     return {
       idUrls: Object.fromEntries(entries),
-    }
+    };
   }
 }

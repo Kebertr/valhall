@@ -27,33 +27,17 @@ type RecentRedemption = {
   acceptedByName?: string;
 };
 
-type ReturnActivity= {
-  returnPenalties: RecentRedemption[],
-  nextSkip: number,
-  hasMore: boolean
-}
+type RecentRedemptionPage = {
+  returnPenalties: RecentRedemptionResponse[];
+  nextSkip: number | null;
+  hasMore: boolean;
+};
 
 const redemptionStatusLabels = {
   PENDING: "Väntar",
   APPROVED: "OK",
   DENIED: "Nekad",
 };
-
-async function getActivity(skip = 0) {
-  let url;
-  if (skip > 0){
-    url = `/api/add/recent?skip=${skip}`
-  }else{
-    url = "/api/add/recent"
-  }
-  const response = await authFetch(url);
-
-  if (!response.ok) {
-    throw new Error("Failed to fetch recent activity");
-  }
-
-  return (await response.json()) as ReturnActivity;
-}
 
 function Redeem() {
   const [amount, setAmount] = useState(1);
@@ -68,78 +52,77 @@ function Redeem() {
   const [selectedVideo, setSelectedVideo] = useState<RecentRedemption | null>(
     null,
   );
-  const [hasMore, setHasMore] = useState(false);
   const navigate = useNavigate();
   const roles =
     (
       getKeycloak().tokenParsed as
-        | { realm_access?: { roles?: string[] } }
-        | undefined
+        { realm_access?: { roles?: string[] } } | undefined
     )?.realm_access?.roles ?? [];
   const isBongmeister = roles.some((role) =>
     ["ADMIN", "BONGMEISTER"].includes(role.toUpperCase()),
   );
 
-  useEffect(() => {
-      getActivity()
-        .then((response) => {
-            setActivityError(null);
-            setRedemptions(response.returnPenalties);
-            setRecentSkip(response.nextSkip);
-            setHasMore(response.hasMore);
-        })
-        .catch(() => {
-            setActivityError("Kunde inte hämta senaste aktiviteterna!")
-        });
-    }, []);
-
   async function getRecentRedemptions(skip = 0) {
-
-    const response = getActivity();
-
-    const redemptions = (await response.json()) as RecentRedemptionResponse[];
-    const playableRedemptions: RecentRedemption[] = [];
-
-    for (const redemption of redemptions) {
-      try {
-        const videoResponse = await authFetch(
-          `${apiUrl}/api/files/${encodeURIComponent(redemption.videoId)}/playback-url`,
-        );
-
-        if (!videoResponse.ok) {
-          continue;
-        }
-
-        const data = (await videoResponse.json()) as {
-          videoUrl: string;
-        };
-
-        playableRedemptions.push({
-          ...redemption,
-          videoUrl: data.videoUrl,
-        });
-      } catch {
-        continue;
-      }
+    let query = "";
+    if (skip < 0) {
+      throw new Error("skip must be a non-negative integer");
+    } else if (skip > 0) {
+      query = `?skip=${skip}`;
     }
+
+    const response = await authFetch(`${apiUrl}/api/redemption/recent${query}`);
+
+    if (!response.ok) {
+      throw new Error("Kunde inte hämta senaste bongarna");
+    }
+    const body = (await response.json()) as
+      RecentRedemptionResponse[] | RecentRedemptionPage;
+    const redemptions = Array.isArray(body) ? body : body.returnPenalties;
+    const resolvedRedemptions = await Promise.all(
+      redemptions.map(async (redemption) => {
+        try {
+          const videoResponse = await authFetch(
+            `${apiUrl}/api/files/${encodeURIComponent(redemption.videoId)}/playback-url`,
+          );
+
+          if (!videoResponse.ok) {
+            return null;
+          }
+
+          const data = (await videoResponse.json()) as {
+            videoUrl: string;
+          };
+
+          return {
+            ...redemption,
+            videoUrl: data.videoUrl,
+          };
+        } catch {
+          return null;
+        }
+      }),
+    );
+    const playableRedemptions = resolvedRedemptions.filter(
+      (redemption): redemption is RecentRedemption => redemption !== null,
+    );
 
     return {
       items: playableRedemptions,
-      nextSkip: skip + redemptions.length,
+      nextSkip: Array.isArray(body)
+        ? skip + redemptions.length
+        : (body.nextSkip ?? skip + redemptions.length),
     };
   }
 
   useEffect(() => {
-
     getRecentRedemptions()
       .then((recent) => {
-
         setRedemptions(recent.items);
         setRecentSkip(recent.nextSkip);
         setActivityError(null);
       })
       .catch(() => {
-          setActivityError("Kunde inte hämta senaste tagna bongar");
+        setActivityError("Kunde inte hämta senaste tagna bongar");
       });
   }, []);
 
@@ -183,19 +166,21 @@ function Redeem() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          bongAmount: amount,
+          penaltyAmount: amount,
           filename: video.name,
           contentType: video.type,
           sizeBytes: video.size,
         }),
       });
 
-      if(response.status === 409) {
+      if (response.status === 409) {
         throw new Error("Du har inte så här många bongar");
       }
 
       if (response.status === 404) {
-        throw new Error("Du verkar inte ha något saldo i bongdatabasen. Ring Bongmeister");
+        throw new Error(
+          "Du verkar inte ha något saldo i bongdatabasen. Ring Bongmeister",
+        );
       }
 
       if (!response.ok) {
@@ -247,10 +232,10 @@ function Redeem() {
       setSubmitMessage("Din redemption är nu uppe och väntar på godkännande!");
       await getRecentRedemptions();
     } catch (error) {
-      if (error instanceof Error){
-        setSubmitError(error.message)
-      }else{
-        setSubmitError("Något gick fel i processen, kontakta Kebert")
+      if (error instanceof Error) {
+        setSubmitError(error.message);
+      } else {
+        setSubmitError("Något gick fel i processen, kontakta Kebert");
       }
     } finally {
       setSubmitting(false);
@@ -268,53 +253,53 @@ function Redeem() {
   }
 
   async function moderateActivity(
-      activity: RecentRedemption,
-      action: "APPROVE" | "REJECT",
-      amount?: number,
-    ) {
-      const response = await authFetch(`/api/bongmeister/redeem/${activity.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action,
-          ...(amount !== undefined ? { amount } : {}),
-        }),
-      });
-  
-      if (!response.ok) {
-        const body = (await response.json().catch(() => null)) as {
-          message?: string;
-        } | null;
-        window.alert(body?.message ?? "Kunde inte hantera bongen.");
-        return;
-      }
-  
-      const updated = (await response.json()) as RecentRedemption;
-      setRedemptions((current) =>
-        current.map((item) =>
-          item.id === activity.id
-            ? {
-                ...item,
-                amount: updated.amount,
-                status: updated.status,
-              }
-            : item,
-        ),
-      );
+    activity: RecentRedemption,
+    action: "APPROVE" | "REJECT",
+    amount?: number,
+  ) {
+    const response = await authFetch(`/api/bongmeister/redeem/${activity.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action,
+        ...(amount !== undefined ? { amount } : {}),
+      }),
+    });
+
+    if (!response.ok) {
+      const body = (await response.json().catch(() => null)) as {
+        message?: string;
+      } | null;
+      window.alert(body?.message ?? "Kunde inte hantera bongen.");
+      return;
     }
-  
-    function editAndApprove(activity: RecentRedemption) {
-      const amountText = window.prompt("Antal", String(activity.amount));
-      if (amountText === null) return;
-  
-      const amount = Number(amountText);
-      if (!Number.isInteger(amount) || amount < 1) {
-        window.alert("Antal måste vara ett heltal på minst 1.");
-        return;
-      }
-  
-      void moderateActivity(activity, "APPROVE", amount);
+
+    const updated = (await response.json()) as RecentRedemption;
+    setRedemptions((current) =>
+      current.map((item) =>
+        item.id === activity.id
+          ? {
+              ...item,
+              amount: updated.amount,
+              status: updated.status,
+            }
+          : item,
+      ),
+    );
+  }
+
+  function editAndApprove(activity: RecentRedemption) {
+    const amountText = window.prompt("Antal", String(activity.amount));
+    if (amountText === null) return;
+
+    const amount = Number(amountText);
+    if (!Number.isInteger(amount) || amount < 1) {
+      window.alert("Antal måste vara ett heltal på minst 1.");
+      return;
     }
+
+    void moderateActivity(activity, "APPROVE", amount);
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 pb-24 text-white">
@@ -340,7 +325,9 @@ function Redeem() {
             </label>
 
             <label className="block">
-              <span className="mb-2 block font-semibold">Lägg till en video som bevis</span>
+              <span className="mb-2 block font-semibold">
+                Lägg till en video som bevis
+              </span>
               <input
                 type="file"
                 accept="video/*"
@@ -424,8 +411,10 @@ function Redeem() {
                   <div className="mt-4 flex w-full flex-wrap gap-2">
                     <button
                       type="button"
-                      onClick={() => void moderateActivity(redemption, "APPROVE")}
-                      
+                      onClick={() =>
+                        void moderateActivity(redemption, "APPROVE")
+                      }
+
                       className="rounded-lg bg-green-700 px-4 py-2 font-semibold hover:bg-green-600"
                     >
                       Godkänn
@@ -439,8 +428,10 @@ function Redeem() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => void moderateActivity(redemption, "REJECT")}
-                      
+                      onClick={() =>
+                        void moderateActivity(redemption, "REJECT")
+                      }
+
                       className="rounded-lg bg-red-700 px-4 py-2 font-semibold hover:bg-red-600"
                     >
                       Neka
@@ -504,3 +495,5 @@ function Redeem() {
     </div>
   );
 }
+
+export default Redeem;
