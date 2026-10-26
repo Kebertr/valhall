@@ -6,7 +6,7 @@ import { mockDeep, type DeepMockProxy } from 'jest-mock-extended';
 import { MemberService } from './member.service';
 import { PrismaService } from './prisma.service';
 import { MemberStatus } from './generated/prisma/enums';
-import { ConflictException } from '@nestjs/common';
+import { ConflictException, NotFoundException } from '@nestjs/common';
 
 jest.mock('./prisma.service', () => ({
   PrismaService: class PrismaService {},
@@ -160,6 +160,29 @@ describe('MemberService', () => {
           godname: true,
         },
       });
+    });
+  });
+
+  describe('findCurrentProfile', () => {
+    it('returns the member linked to the Keycloak user', async () => {
+      const member = {
+        id: 'member-id',
+        name: 'Stina Andersson',
+        godname: 'Freja',
+        avatarUrl: null,
+        status: MemberStatus.GUD,
+      };
+      prisma.member.findUnique.mockResolvedValueOnce(member);
+
+      await expect(service.findCurrentProfile(user)).resolves.toEqual(member);
+    });
+
+    it('returns not found when the Keycloak user has no linked member', async () => {
+      prisma.member.findUnique.mockResolvedValueOnce(null);
+
+      await expect(service.findCurrentProfile(user)).rejects.toThrow(
+        new NotFoundException('Member account is not linked'),
+      );
     });
   });
 

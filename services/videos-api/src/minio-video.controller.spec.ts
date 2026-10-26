@@ -4,6 +4,7 @@ import { MinioVideoService } from './minio-video.service';
 
 jest.mock('@valhall/auth', () => ({
   JwtAuthGuard: class {},
+  RegisteredMemberGuard: class {},
 }));
 
 describe('MinioVideoController', () => {

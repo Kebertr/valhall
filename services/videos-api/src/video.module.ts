@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ClientsModule, Transport } from '@nestjs/microservices';
-import { AuthModule } from '@valhall/auth';
+import { AuthModule, RegisteredMemberGuard } from '@valhall/auth';
 import * as Minio from 'minio';
 import { join } from 'path';
 import { MINIO_TOKEN } from './minio.constants';
@@ -53,6 +53,7 @@ import { GrpcMetricsInterceptor } from './grpc-metrics.interceptor';
         }),
     },
     MinioVideoService,
+    RegisteredMemberGuard,
     PrismaService,
     PrometheusService,
     GrpcMetricsInterceptor,

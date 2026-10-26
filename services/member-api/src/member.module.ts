@@ -10,6 +10,7 @@ import { PrometheusController } from './prometheus.controller';
 import { PrometheusService } from './prometheus.service';
 import { GrpcMetricsService } from './grpc-metrics.service';
 import { GrpcMetricsInterceptor } from './grpc-metrics.interceptor';
+import { RegisteredMemberGuard } from './registered-member.guard';
 
 @Module({
   imports: [ConfigModule.forRoot({ isGlobal: true }), AuthModule],
@@ -21,6 +22,7 @@ import { GrpcMetricsInterceptor } from './grpc-metrics.interceptor';
     PrometheusService,
     GrpcMetricsService,
     GrpcMetricsInterceptor,
+    RegisteredMemberGuard,
   ],
 })
 export class MemberModule {}

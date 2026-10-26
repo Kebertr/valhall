@@ -9,12 +9,12 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { MinioVideoService } from './minio-video.service';
-import { JwtAuthGuard } from '@valhall/auth';
+import { JwtAuthGuard, RegisteredMemberGuard } from '@valhall/auth';
 import { CreateVideoUploadDto, VideoUploadCompleteDto } from './dto/videos.dto';
 
 @ApiTags('Videos')
 @ApiBearerAuth('keycloak')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RegisteredMemberGuard)
 @Controller('files')
 export class MinioVideoController {
   constructor(private readonly service: MinioVideoService) {}

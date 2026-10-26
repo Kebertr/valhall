@@ -5,11 +5,11 @@ import {
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
-import { JwtAuthGuard } from '@valhall/auth';
+import { JwtAuthGuard, RegisteredMemberGuard } from '@valhall/auth';
 import { LeaderboardService } from './leaderboard.service';
 
 @ApiTags('Leaderboard')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RegisteredMemberGuard)
 @Controller()
 export class LeaderboardController {
   constructor(private readonly leaderboardService: LeaderboardService) {}

@@ -5,6 +5,7 @@ import { PenaltyAction } from './dto/moderate-penalty.dto';
 
 jest.mock('@valhall/auth', () => ({
   JwtAuthGuard: class {},
+  RegisteredMemberGuard: class {},
   RolesGuard: class {},
   Role: { ADMIN: 'ADMIN', BONGMEISTER: 'BONGMEISTER' },
   Roles: () => () => undefined,

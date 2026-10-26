@@ -1,4 +1,8 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import type { AuthenticatedUser } from '@valhall/auth';
 import { PrismaService } from './prisma.service';
 import { RpcException } from '@nestjs/microservices';
@@ -92,8 +96,8 @@ export class MemberService {
     return this.findCurrentMember(user);
   }
 
-  findCurrentProfile(user: AuthenticatedUser) {
-    return this.prisma.member.findUniqueOrThrow({
+  async findCurrentProfile(user: AuthenticatedUser) {
+    const member = await this.prisma.member.findUnique({
       where: { keycloakId: user.keycloakId },
       select: {
         id: true,
@@ -103,6 +107,12 @@ export class MemberService {
         status: true,
       },
     });
+
+    if (!member) {
+      throw new NotFoundException('Member account is not linked');
+    }
+
+    return member;
   }
 
   async resolvePenaltyParticipants(

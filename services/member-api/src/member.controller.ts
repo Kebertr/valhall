@@ -22,6 +22,7 @@ import { ResolveMemberNamesDto } from './dto/resolve-member-names.dto';
 import { MemberLinkService } from './member-link.service';
 import { MemberService } from './member.service';
 import { CreateMemberDto } from './dto/create-member.dto';
+import { RegisteredMemberGuard } from './registered-member.guard';
 
 @Controller('members')
 @ApiTags('Members')
@@ -33,20 +34,20 @@ export class MemberController {
   ) {}
 
   @Post('add-member')
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, RegisteredMemberGuard, RolesGuard)
   @Roles(Role.ADMIN, Role.ORDFORANDE)
   createMember(@Body() body: CreateMemberDto) {
     return this.memberService.createMember(body);
   }
 
   @Get('gudar')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RegisteredMemberGuard)
   findAll() {
     return this.memberService.findAll();
   }
 
   @Get('penalty-targets')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RegisteredMemberGuard)
   findPenaltyTargets() {
     return this.memberService.findPenaltyTargets();
   }
@@ -58,20 +59,20 @@ export class MemberController {
   }
 
   @Get('unlinked')
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, RegisteredMemberGuard, RolesGuard)
   @Roles(Role.ADMIN, Role.ORDFORANDE)
   findUnlinked() {
     return this.memberService.findUnlinked();
   }
 
   @Post('resolve-names')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RegisteredMemberGuard)
   resolveNames(@Body() body: ResolveMemberNamesDto) {
     return this.memberService.findNamesByIds(body.ids);
   }
 
   @Post(':memberId/link-invitations')
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, RegisteredMemberGuard, RolesGuard)
   @Roles(Role.ADMIN, Role.ORDFORANDE)
   createLink(@Param('memberId', ParseIntPipe) memberId: number) {
     return this.memberLinkService.createLink(memberId);
@@ -87,7 +88,7 @@ export class MemberController {
   }
 
   @Post('penalty-participants')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RegisteredMemberGuard)
   resolvePenaltyParticipants(
     @Body() body: ResolvePenaltyParticipantsDto,
     @CurrentUser() user: AuthenticatedUser,

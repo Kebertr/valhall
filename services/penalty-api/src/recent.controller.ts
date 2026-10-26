@@ -1,10 +1,10 @@
 import { Controller, Get, Headers, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { JwtAuthGuard } from '@valhall/auth';
+import { JwtAuthGuard, RegisteredMemberGuard } from '@valhall/auth';
 import { RecentService } from './recent.service';
 
 @ApiTags('Recent')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RegisteredMemberGuard)
 @Controller('recent')
 export class RecentController {
   constructor(private readonly recentService: RecentService) {}
