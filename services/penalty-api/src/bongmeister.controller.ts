@@ -8,13 +8,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import {
-  JwtAuthGuard,
-  RegisteredMemberGuard,
-  Role,
-  Roles,
-  RolesGuard,
-} from '@valhall/auth';
+import { JwtAuthGuard, Role, Roles, RolesGuard } from '@valhall/auth';
 import { BongmeisterService } from './bongmeister.service';
 import {
   changeAmountDto,
@@ -24,7 +18,7 @@ import {
 @Controller('bongmeister')
 @ApiTags('Bongmeister')
 @ApiBearerAuth('keycloak')
-@UseGuards(JwtAuthGuard, RegisteredMemberGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(Role.ADMIN, Role.BONGMEISTER)
 export class BongmeisterController {
   constructor(private readonly bongmeisterService: BongmeisterService) {}

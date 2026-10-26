@@ -15,9 +15,9 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
+        <Route path="/" element={<Home />} />
         <Route path="/link-member" element={<LinkMember />} />
         <Route element={<RegisteredMemberRoute />}>
-          <Route path="/" element={<Home />} />
           <Route path="/add" element={<AddShot />} />
           <Route path="/redeem" element={<Redeem />} />
           <Route path="/profile" element={<Profile />} />

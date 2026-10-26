@@ -34,7 +34,7 @@ export class MemberController {
   ) {}
 
   @Post('add-member')
-  @UseGuards(JwtAuthGuard, RegisteredMemberGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN, Role.ORDFORANDE)
   createMember(@Body() body: CreateMemberDto) {
     return this.memberService.createMember(body);
@@ -47,7 +47,7 @@ export class MemberController {
   }
 
   @Get('penalty-targets')
-  @UseGuards(JwtAuthGuard, RegisteredMemberGuard)
+  @UseGuards(JwtAuthGuard)
   findPenaltyTargets() {
     return this.memberService.findPenaltyTargets();
   }
@@ -59,20 +59,20 @@ export class MemberController {
   }
 
   @Get('unlinked')
-  @UseGuards(JwtAuthGuard, RegisteredMemberGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN, Role.ORDFORANDE)
   findUnlinked() {
     return this.memberService.findUnlinked();
   }
 
   @Post('resolve-names')
-  @UseGuards(JwtAuthGuard, RegisteredMemberGuard)
+  @UseGuards(JwtAuthGuard)
   resolveNames(@Body() body: ResolveMemberNamesDto) {
     return this.memberService.findNamesByIds(body.ids);
   }
 
   @Post(':memberId/link-invitations')
-  @UseGuards(JwtAuthGuard, RegisteredMemberGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN, Role.ORDFORANDE)
   createLink(@Param('memberId', ParseIntPipe) memberId: number) {
     return this.memberLinkService.createLink(memberId);
@@ -88,7 +88,7 @@ export class MemberController {
   }
 
   @Post('penalty-participants')
-  @UseGuards(JwtAuthGuard, RegisteredMemberGuard)
+  @UseGuards(JwtAuthGuard)
   resolvePenaltyParticipants(
     @Body() body: ResolvePenaltyParticipantsDto,
     @CurrentUser() user: AuthenticatedUser,

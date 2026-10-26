@@ -15,10 +15,10 @@ import {
 } from '@nestjs/swagger';
 import { RedemptionService } from './redemption.service';
 import { CreateRedemptionDto } from './dto/redemption.dto';
-import { JwtAuthGuard, RegisteredMemberGuard } from '@valhall/auth';
+import { JwtAuthGuard } from '@valhall/auth';
 
 @ApiTags('Redemptions')
-@UseGuards(JwtAuthGuard, RegisteredMemberGuard)
+@UseGuards(JwtAuthGuard)
 @Controller()
 export class RedemptionController {
   constructor(private readonly redemptionService: RedemptionService) {}

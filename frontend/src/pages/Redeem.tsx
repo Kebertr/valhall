@@ -157,7 +157,7 @@ function Redeem() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          bongAmount: amount,
+          penaltyAmount: amount,
           filename: video.name,
           contentType: video.type,
           sizeBytes: video.size,

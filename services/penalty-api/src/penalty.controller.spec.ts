@@ -4,7 +4,6 @@ import { PenaltyService } from './penalty.service';
 
 jest.mock('@valhall/auth', () => ({
   JwtAuthGuard: class {},
-  RegisteredMemberGuard: class {},
 }));
 
 const penaltyServiceMock = {

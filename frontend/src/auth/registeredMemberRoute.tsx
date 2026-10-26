@@ -40,7 +40,7 @@ export function RegisteredMemberRoute() {
   }
 
   if (state === "unregistered") {
-    return <Navigate to="/link-member" replace />;
+    return <Navigate to="/" replace />;
   }
 
   if (state === "error") {

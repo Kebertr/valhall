@@ -13,11 +13,11 @@ vi.mock("../auth/authFetch", () => ({
 
 function renderRoutes() {
   return render(
-    <MemoryRouter initialEntries={["/"]}>
+    <MemoryRouter initialEntries={["/protected"]}>
       <Routes>
-        <Route path="/link-member" element={<p>Link member account</p>} />
+        <Route path="/" element={<p>Public home with logout</p>} />
         <Route element={<RegisteredMemberRoute />}>
-          <Route path="/" element={<p>Valhall home</p>} />
+          <Route path="/protected" element={<p>Protected page</p>} />
         </Route>
       </Routes>
     </MemoryRouter>,
@@ -34,15 +34,17 @@ describe("RegisteredMemberRoute", () => {
 
     renderRoutes();
 
-    expect(await screen.findByText("Valhall home")).toBeInTheDocument();
+    expect(await screen.findByText("Protected page")).toBeInTheDocument();
     expect(mockAuthFetch).toHaveBeenCalledWith("/api/members/me");
   });
 
-  it("redirects an unlinked Keycloak user to member linking", async () => {
+  it("redirects an unlinked Keycloak user to the public home", async () => {
     mockAuthFetch.mockResolvedValueOnce({ ok: false, status: 404 });
 
     renderRoutes();
 
-    expect(await screen.findByText("Link member account")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Public home with logout"),
+    ).toBeInTheDocument();
   });
 });
