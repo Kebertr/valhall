@@ -2,7 +2,9 @@ FROM node:24-alpine AS base
 
 WORKDIR /app
 
-RUN corepack enable
+ENV COREPACK_HOME=/opt/corepack
+
+RUN corepack enable && corepack prepare pnpm@11.17.0 --activate
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
@@ -32,7 +34,7 @@ RUN pnpm --filter penalty-api exec prisma generate
 RUN pnpm --filter penalty-api build
 
 #penalty run
-FROM node:24-alpine AS penalty-runtime
+FROM base AS penalty-runtime
 
 WORKDIR /app/services/penalty-api
 
@@ -43,6 +45,8 @@ COPY  --chown=node:node --from=penalty-build /app/services/penalty-api/node_modu
 COPY  --chown=node:node --from=penalty-build /app/packages /app/packages
 COPY  --chown=node:node --from=penalty-build /app/services/penalty-api/dist ./dist
 COPY  --chown=node:node --from=penalty-build /app/services/penalty-api/package.json ./package.json
+COPY  --chown=node:node --from=penalty-build /app/services/penalty-api/prisma ./prisma
+COPY  --chown=node:node --from=penalty-build /app/services/penalty-api/prisma.config.ts ./prisma.config.ts
 COPY  --chown=node:node --from=penalty-build /app/proto /app/proto
 
 EXPOSE 3001
@@ -63,7 +67,7 @@ RUN pnpm --filter member-api exec prisma generate
 RUN pnpm --filter member-api build
 
 #member run
-FROM node:24-alpine AS member-runtime
+FROM base AS member-runtime
 
 WORKDIR /app/services/member-api
 
@@ -74,6 +78,8 @@ COPY  --chown=node:node --from=member-build /app/services/member-api/node_module
 COPY  --chown=node:node --from=member-build /app/packages /app/packages
 COPY  --chown=node:node --from=member-build /app/services/member-api/dist ./dist
 COPY  --chown=node:node --from=member-build /app/services/member-api/package.json ./package.json
+COPY  --chown=node:node --from=member-build /app/services/member-api/prisma ./prisma
+COPY  --chown=node:node --from=member-build /app/services/member-api/prisma.config.ts ./prisma.config.ts
 COPY  --chown=node:node --from=member-build /app/proto /app/proto
 
 EXPOSE 3001
@@ -94,7 +100,7 @@ RUN pnpm --filter videos-api exec prisma generate
 RUN pnpm --filter videos-api build
 
 #videos run
-FROM node:24-alpine AS videos-runtime
+FROM base AS videos-runtime
 
 WORKDIR /app/services/videos-api
 
@@ -105,6 +111,8 @@ COPY  --chown=node:node --from=videos-build /app/services/videos-api/node_module
 COPY  --chown=node:node --from=videos-build /app/packages /app/packages
 COPY  --chown=node:node --from=videos-build /app/services/videos-api/dist ./dist
 COPY  --chown=node:node --from=videos-build /app/services/videos-api/package.json ./package.json
+COPY  --chown=node:node --from=videos-build /app/services/videos-api/prisma ./prisma
+COPY  --chown=node:node --from=videos-build /app/services/videos-api/prisma.config.ts ./prisma.config.ts
 COPY  --chown=node:node --from=videos-build /app/proto /app/proto
 
 EXPOSE 3001
