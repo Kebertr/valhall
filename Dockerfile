@@ -39,6 +39,7 @@ FROM base AS penalty-runtime
 WORKDIR /app/services/penalty-api
 
 ENV NODE_ENV=production
+ENV pnpm_config_verify_deps_before_run=false
 
 COPY  --chown=node:node --from=penalty-build /app/node_modules /app/node_modules
 COPY  --chown=node:node --from=penalty-build /app/services/penalty-api/node_modules ./node_modules
@@ -72,6 +73,7 @@ FROM base AS member-runtime
 WORKDIR /app/services/member-api
 
 ENV NODE_ENV=production
+ENV pnpm_config_verify_deps_before_run=false
 
 COPY  --chown=node:node --from=member-build /app/node_modules /app/node_modules
 COPY  --chown=node:node --from=member-build /app/services/member-api/node_modules ./node_modules
@@ -105,6 +107,7 @@ FROM base AS videos-runtime
 WORKDIR /app/services/videos-api
 
 ENV NODE_ENV=production
+ENV pnpm_config_verify_deps_before_run=false
 
 COPY  --chown=node:node --from=videos-build /app/node_modules /app/node_modules
 COPY  --chown=node:node --from=videos-build /app/services/videos-api/node_modules ./node_modules
