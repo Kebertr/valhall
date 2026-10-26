@@ -108,13 +108,13 @@ describe('MemberService', () => {
   });
 
   describe('findPenaltyTargets', () => {
-    it('filters penalty targets to GUD members ordered by godname', async () => {
+    it('filters penalty targets to GUD and VIKING members ordered by godname', async () => {
       prisma.member.findMany.mockResolvedValueOnce([]);
 
       await service.findPenaltyTargets();
 
       expect(prisma.member.findMany).toHaveBeenCalledWith({
-        where: { status: 'GUD' },
+        where: { status: { in: ['GUD', 'VIKING'] } },
         orderBy: { godname: 'asc' },
         select: { id: true, name: true, godname: true },
       });
@@ -164,27 +164,30 @@ describe('MemberService', () => {
   });
 
   describe('resolvePenaltyParticipants', () => {
-    it('returns the sender and GUD target record IDs', async () => {
-      prisma.member.findUnique
-        .mockResolvedValueOnce({ id: 'sender-id' })
-        .mockResolvedValueOnce({ id: 'target-id', status: 'GUD' });
+    it.each(['GUD', 'VIKING'])(
+      'returns the sender and %s target record IDs',
+      async (status) => {
+        prisma.member.findUnique
+          .mockResolvedValueOnce({ id: 'sender-id' })
+          .mockResolvedValueOnce({ id: 'target-id', status });
 
-      await expect(
-        service.resolvePenaltyParticipants('target-id', user),
-      ).resolves.toEqual({
-        fromId: 'sender-id',
-        toId: 'target-id',
-      });
+        await expect(
+          service.resolvePenaltyParticipants('target-id', user),
+        ).resolves.toEqual({
+          fromId: 'sender-id',
+          toId: 'target-id',
+        });
 
-      expect(prisma.member.findUnique).toHaveBeenNthCalledWith(1, {
-        where: { keycloakId: user.keycloakId },
-        select: { id: true },
-      });
-      expect(prisma.member.findUnique).toHaveBeenNthCalledWith(2, {
-        where: { id: 'target-id' },
-        select: { id: true, status: true },
-      });
-    });
+        expect(prisma.member.findUnique).toHaveBeenNthCalledWith(1, {
+          where: { keycloakId: user.keycloakId },
+          select: { id: true },
+        });
+        expect(prisma.member.findUnique).toHaveBeenNthCalledWith(2, {
+          where: { id: 'target-id' },
+          select: { id: true, status: true },
+        });
+      },
+    );
 
     it('rejects when the caller has no linked member record', async () => {
       prisma.member.findUnique
@@ -217,7 +220,7 @@ describe('MemberService', () => {
       });
     });
 
-    it('rejects when the target is not a GUD member', async () => {
+    it('rejects when the target is neither a GUD nor a VIKING member', async () => {
       prisma.member.findUnique
         .mockResolvedValueOnce({ id: 'sender-id' })
         .mockResolvedValueOnce({ id: 'target-id', status: 'AS' });
@@ -228,7 +231,7 @@ describe('MemberService', () => {
 
       expect(error.getError()).toEqual({
         code: GrpcStatus.INVALID_ARGUMENT,
-        details: 'Only GUD members can receive penalties',
+        details: 'Only GUD and VIKING members can receive penalties',
       });
     });
 

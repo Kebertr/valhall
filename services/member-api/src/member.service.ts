@@ -59,7 +59,7 @@ export class MemberService {
 
   findPenaltyTargets() {
     return this.prisma.member.findMany({
-      where: { status: 'GUD' },
+      where: { status: { in: ['GUD', 'VIKING'] } },
       orderBy: { godname: 'asc' },
       select: {
         id: true,
@@ -131,10 +131,10 @@ export class MemberService {
       });
     }
 
-    if (target.status !== 'GUD') {
+    if (target.status !== 'GUD' && target.status !== 'VIKING') {
       throw new RpcException({
         code: GrpcStatus.INVALID_ARGUMENT, // 3
-        details: 'Only GUD members can receive penalties',
+        details: 'Only GUD and VIKING members can receive penalties',
       });
     }
 
