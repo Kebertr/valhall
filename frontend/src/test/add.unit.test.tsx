@@ -1,52 +1,26 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import AddShot from "../pages/Add";
+import AddPenalty from "../pages/Add";
 
-const { mockNavigate, mockAuthFetch, mockKeycloak } = vi.hoisted(() => ({
-  mockNavigate: vi.fn(),
-  mockAuthFetch: vi.fn(),
-  mockKeycloak: {
-    tokenParsed: {
-      realm_access: {
-        roles: [] as string[],
-      },
-    },
+const { authFetch, navigate, keycloak } = vi.hoisted(() => ({
+  authFetch: vi.fn(),
+  navigate: vi.fn(),
+  keycloak: {
+    tokenParsed: { realm_access: { roles: [] as string[] } },
+    logout: vi.fn(),
   },
 }));
-
-vi.mock("react-router-dom", async () => {
-  const actual =
-    await vi.importActual<typeof import("react-router-dom")>(
-      "react-router-dom",
-    );
-
-  return {
-    ...actual,
-    useNavigate: () => mockNavigate,
-  };
-});
-
-vi.mock("../auth/authFetch", () => ({
-  authFetch: mockAuthFetch,
+vi.mock("../auth/authFetch", () => ({ authFetch }));
+vi.mock("../auth/keycloak", () => ({ getKeycloak: () => keycloak }));
+vi.mock("react-router-dom", async () => ({
+  ...(await vi.importActual<typeof import("react-router-dom")>(
+    "react-router-dom",
+  )),
+  useNavigate: () => navigate,
 }));
 
-vi.mock("../auth/keycloak", () => ({
-  getKeycloak: () => mockKeycloak,
-}));
-
-vi.mock("../components/Navbar", () => ({
-  default: () => <div data-testid="navbar">Navbar</div>,
-}));
-
-type Member = {
-  id: string;
-  name: string;
-  godname: string;
-  avatarUrl: string | null;
-};
-
-type RecentActivity = {
+type Activity = {
   id: string;
   fromName: string;
   toName: string;
@@ -56,873 +30,577 @@ type RecentActivity = {
   acceptedByName: string | null;
   createdAt: string;
 };
+const member = {
+  id: "member-1",
+  name: "Rasmus Kebert",
+  godname: "Odin",
+  avatarUrl: null,
+};
+const activity: Activity = {
+  id: "activity-1",
+  fromName: "Anna",
+  toName: "Odin",
+  amount: 2,
+  reason: "Kom sent",
+  status: "PENDING",
+  acceptedByName: null,
+  createdAt: "2026-08-10T08:00:00Z",
+};
+const ok = (body: unknown, successful = true) => ({
+  ok: successful,
+  json: vi.fn().mockResolvedValue(body),
+});
+const page = (
+  items: Activity[] = [],
+  nextSkip = items.length,
+  hasMore = false,
+) => ({ returnPenalties: items, nextSkip, hasMore });
 
-function jsonResponse(
-  body: unknown,
-  options?: {
-    ok?: boolean;
-    status?: number;
-  },
+function arrange(
+  members = [member],
+  items: Activity[] = [],
+  addResult: unknown = activity,
 ) {
-  return {
-    ok: options?.ok ?? true,
-    status: options?.status ?? 200,
-    json: vi.fn().mockResolvedValue(body),
-  };
+  authFetch.mockImplementation(async (url: string) => {
+    if (url === "/api/members/me")
+      return ok({ name: "Test User", avatarUrl: null, status: "" });
+    if (url === "/api/members/penalty-targets") return ok(members);
+    if (url === "/api/add/recent") return ok(page(items));
+    if (url === "/api/add") return ok(addResult);
+    throw new Error(`Unexpected request : ${url}`);
+  });
 }
-
-function createMember(index: number, overrides?: Partial<Member>): Member {
-  return {
-    id: `member-${index}`,
-    name: `Member ${index}`,
-    godname: `God ${index}`,
-    avatarUrl: null,
-    ...overrides,
-  };
+async function select(user: ReturnType<typeof userEvent.setup>) {
+  const input = await screen.findByPlaceholderText("Sök efter namn...");
+  await user.type(input, "Odin");
+  await user.click(screen.getByRole("button", { name: "Odin, Rasmus Kebert" }));
+  return input;
 }
+beforeEach(() => {
+  vi.restoreAllMocks();
+  authFetch.mockReset();
+  navigate.mockReset();
+  keycloak.tokenParsed.realm_access.roles = [];
+});
 
-function createActivity(
-  index: number,
-  overrides?: Partial<RecentActivity>,
-): RecentActivity {
-  return {
-    id: `activity-${index}`,
-    fromName: `From ${index}`,
-    toName: `To ${index}`,
-    amount: 2,
-    reason: `Reason ${index}`,
-    status: "APPROVED",
-    acceptedByName: "Bongmeister",
-    createdAt: `2026-08-10T08:${String(index).padStart(2, "0")}:00.000Z`,
-    ...overrides,
-  };
-}
+describe("Fetch members", () => {
+  it("fetches penalty targets when the page loads", async () => {
+    arrange();
+    render(<AddPenalty />);
+    await waitFor(() =>
+      expect(authFetch).toHaveBeenCalledWith("/api/members/penalty-targets"),
+    );
+  });
+  it("shows an error and disables member search when penalty targets cannot be loaded", async () => {
+    arrange();
+    authFetch.mockImplementation(async (url: string) => {
+      if (url === "/api/members/penalty-targets") return ok(null, false);
+      if (url === "/api/add/recent") return ok(page());
+      if (url === "/api/members/me")
+        return ok({ name: "Test User", avatarUrl: null, status: "" });
+      throw new Error(url);
+    });
+    render(<AddPenalty />);
+    expect(
+      await screen.findByText("Kunde inte hämta alla gudar som kan få straff"),
+    ).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Sök efter namn...")).toBeDisabled();
+  });
+});
 
-function exactParagraphText(expectedText: string) {
-  return (_content: string, element: Element | null) =>
-    element?.tagName.toLowerCase() === "p" &&
-    element.textContent === expectedText;
-}
-
-function mockUserRoles(userRoles: string[]) {
-  mockKeycloak.tokenParsed = {
-    realm_access: {
-      roles: userRoles,
+describe("Recent activity", () => {
+  it("fetches recent activity when the page loads", async () => {
+    arrange();
+    render(<AddPenalty />);
+    await waitFor(() =>
+      expect(authFetch).toHaveBeenCalledWith("/api/add/recent"),
+    );
+  });
+  it("renders activities returned by the recent activity endpoint", async () => {
+    arrange(
+      [member],
+      [{ ...activity, status: "APPROVED", acceptedByName: "Rasmus" }],
+    );
+    render(<AddPenalty />);
+    const card = await screen.findByRole("article");
+    for (const text of ["Anna", "Odin", "Kom sent", "OK av Rasmus"])
+      expect(within(card).getByText(text)).toBeInTheDocument();
+    expect(within(card).getByText(/2 bongar/)).toBeInTheDocument();
+  });
+  it("uses bong for amount one and bongar for multiple", async () => {
+    arrange(
+      [member],
+      [
+        { ...activity, id: "1", amount: 1 },
+        { ...activity, id: "2" },
+      ],
+    );
+    render(<AddPenalty />);
+    expect(await screen.findByText(/1 bong$/)).toBeInTheDocument();
+    expect(screen.getByText(/2 bongar$/)).toBeInTheDocument();
+  });
+  it("does not render an activity reason when reason is empty", async () => {
+    arrange([member], [{ ...activity, reason: "" }]);
+    render(<AddPenalty />);
+    const card = await screen.findByRole("article");
+    expect(within(card).getByText(/2 bongar/)).toBeInTheDocument();
+    expect(within(card).queryByText("Kom sent")).not.toBeInTheDocument();
+  });
+  it.each([
+    ["PENDING", null, "Väntar"],
+    ["APPROVED", null, "OK"],
+    ["APPROVED", "Rasmus", "OK av Rasmus"],
+    ["DENIED", "Rasmus", "Nekad av Rasmus"],
+  ] as const)(
+    "renders the correct %s status label",
+    async (status, acceptedByName, expected) => {
+      arrange([member], [{ ...activity, status, acceptedByName }]);
+      render(<AddPenalty />);
+      expect(await screen.findByText(expected)).toBeInTheDocument();
     },
-  };
-}
-
-function mockInitialRequests(options?: {
-  members?: Member[];
-  activities?: RecentActivity[];
-}) {
-  const members = options?.members ?? [];
-  const activities = options?.activities ?? [];
-
-  mockAuthFetch.mockImplementation(async (url: string) => {
-    if (url === "/api/members/shot-targets") {
-      return jsonResponse(members);
-    }
-
-    if (url === "/api/add/recent") {
-      return jsonResponse(activities);
-    }
-
-    throw new Error(`Unexpected authFetch call: ${url}`);
-  });
-}
-
-describe("AddShot", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockUserRoles([]);
-  });
-
-  it("fetches members and recent activity when page loads", async () => {
-    const createdAt = "2026-08-10T08:00:00.000Z";
-
-    mockInitialRequests({
-      members: [
-        createMember(1, {
-          name: "Rasmus",
-          godname: "Odin",
-        }),
-      ],
-      activities: [
-        createActivity(1, {
-          fromName: "Anna",
-          toName: "Bea",
-          amount: 2,
-          reason: "Kom sent",
-          status: "APPROVED",
-          acceptedByName: "Rasmus",
-          createdAt,
-        }),
-      ],
-    });
-
-    render(<AddShot />);
-
-    expect(screen.getByTestId("navbar")).toBeInTheDocument();
-
-    expect(await screen.findByPlaceholderText("Sök efter namn...")).toBeEnabled();
-
-    expect(
-      await screen.findByText(exactParagraphText("Anna gav Bea 2 bongar")),
-    ).toBeInTheDocument();
-
-    expect(screen.getByText("Kom sent")).toBeInTheDocument();
-    expect(screen.getByText("OK av Rasmus")).toBeInTheDocument();
-
-    expect(
-      screen.getByText(new Date(createdAt).toLocaleString("sv-SE")),
-    ).toBeInTheDocument();
-
-    expect(mockAuthFetch).toHaveBeenCalledWith("/api/members/shot-targets");
-    expect(mockAuthFetch).toHaveBeenCalledWith("/api/add/recent");
-  });
-
-  it("shows empty recent activity text when there are no activities", async () => {
-    mockInitialRequests({
-      members: [],
-      activities: [],
-    });
-
-    render(<AddShot />);
-
+  );
+  it("shows an empty state when there are no recent activities", async () => {
+    arrange();
+    render(<AddPenalty />);
     expect(
       await screen.findByText("Inga bongar har delats ut ännu."),
     ).toBeInTheDocument();
   });
-
-  it("shows member fetch error and disables member input", async () => {
-    mockAuthFetch.mockImplementation(async (url: string) => {
-      if (url === "/api/members/shot-targets") {
-        return jsonResponse(null, {
-          ok: false,
-          status: 500,
-        });
-      }
-
-      if (url === "/api/add/recent") {
-        return jsonResponse([]);
-      }
-
-      throw new Error(`Unexpected authFetch call: ${url}`);
-    });
-
-    render(<AddShot />);
-
-    expect(await screen.findByText("Failed to fetch members")).toBeInTheDocument();
-
-    expect(screen.getByPlaceholderText("Sök efter namn...")).toBeDisabled();
-  });
-
-  it("shows recent activity fetch error", async () => {
-    mockAuthFetch.mockImplementation(async (url: string) => {
-      if (url === "/api/members/shot-targets") {
-        return jsonResponse([]);
-      }
-
-      if (url === "/api/add/recent") {
-        return jsonResponse(null, {
-          ok: false,
-          status: 500,
-        });
-      }
-
-      throw new Error(`Unexpected authFetch call: ${url}`);
-    });
-
-    render(<AddShot />);
-
+  it("shows an error when recent activity cannot be loaded", async () => {
+    arrange();
+    const original = authFetch.getMockImplementation();
+    authFetch.mockImplementation(async (url: string, init?: RequestInit) =>
+      url === "/api/add/recent" ? ok(null, false) : original!(url, init),
+    );
+    render(<AddPenalty />);
     expect(
-      await screen.findByText("Failed to fetch recent activity"),
+      await screen.findByText("Kunde inte hämta senaste aktiviteterna!"),
     ).toBeInTheDocument();
   });
+});
 
-  it("filters member suggestions and selects a member", async () => {
+describe("Search and filter members", () => {
+  it.each([
+    ["name", "Rasmus", "Odin, Rasmus Kebert"],
+    ["godname", "Frej", "Freja, Anna Svensson"],
+    ["case-insensitively", "ODIN", "Odin, Rasmus Kebert"],
+  ])(
+    "shows matching members when searching by %s",
+    async (_case, query, expected) => {
+      const user = userEvent.setup();
+      arrange([
+        member,
+        { id: "2", name: "Anna Svensson", godname: "Freja", avatarUrl: null },
+      ]);
+      render(<AddPenalty />);
+      await user.type(
+        await screen.findByPlaceholderText("Sök efter namn..."),
+        query,
+      );
+      expect(
+        screen.getByRole("button", { name: expected }),
+      ).toBeInTheDocument();
+    },
+  );
+  it("shows at most eight matching members", async () => {
     const user = userEvent.setup();
-
-    mockInitialRequests({
-      members: [
-        createMember(1, {
-          name: "Oskar",
-          godname: "Odin",
-        }),
-        createMember(2, {
-          name: "Thorsten",
-          godname: "Thor",
-        }),
-      ],
-      activities: [],
-    });
-
-    render(<AddShot />);
-
-    const memberInput = await screen.findByPlaceholderText("Sök efter namn...");
-
-    await user.type(memberInput, "odi");
-
-    const memberOption = screen.getByRole("button", {
-      name: "Odin, Oskar",
-    });
-
-    await user.click(memberOption);
-
-    expect(memberInput).toHaveValue("Odin (Oskar)");
+    arrange(
+      Array.from({ length: 10 }, (_, i) => ({
+        id: `${i}`,
+        name: `Match ${i}`,
+        godname: `God ${i}`,
+        avatarUrl: null,
+      })),
+    );
+    render(<AddPenalty />);
+    await user.type(
+      await screen.findByPlaceholderText("Sök efter namn..."),
+      "Match",
+    );
     expect(
-      screen.queryByRole("button", { name: "Thor, Thorsten" }),
-    ).not.toBeInTheDocument();
+      screen.getAllByRole("button", { name: /God \d, Match \d/ }),
+    ).toHaveLength(8);
   });
-
-  it("shows no matching members text when search has no result", async () => {
+  it("shows no matching members message when the search has no results", async () => {
     const user = userEvent.setup();
-
-    mockInitialRequests({
-      members: [
-        createMember(1, {
-          name: "Oskar",
-          godname: "Odin",
-        }),
-      ],
-      activities: [],
-    });
-
-    render(<AddShot />);
-
-    await user.type(await screen.findByPlaceholderText("Sök efter namn..."), "zzz");
-
+    arrange();
+    render(<AddPenalty />);
+    await user.type(
+      await screen.findByPlaceholderText("Sök efter namn..."),
+      "Nobody",
+    );
     expect(screen.getByText("Inga matchande medlemmar.")).toBeInTheDocument();
   });
-
-  it("limits member suggestions to 8 matches", async () => {
+  it("selects a member when a search result is clicked", async () => {
     const user = userEvent.setup();
+    arrange();
+    render(<AddPenalty />);
+    const input = await select(user);
+    expect(input).toHaveValue("Odin (Rasmus Kebert)");
+    expect(screen.getByRole("button", { name: "Ge bong" })).toBeEnabled();
+  });
+  it("clears the selected member when the member search text is changed", async () => {
+    const user = userEvent.setup();
+    arrange();
+    render(<AddPenalty />);
+    const input = await select(user);
+    await user.type(input, "x");
+    expect(screen.getByRole("button", { name: "Ge bong" })).toBeDisabled();
+  });
+});
 
-    mockInitialRequests({
-      members: Array.from({ length: 10 }, (_, index) =>
-        createMember(index, {
-          name: `Match Name ${index}`,
-          godname: `Match God ${index}`,
+describe("Load more activity", () => {
+  function paginated(
+    load: () => Promise<ReturnType<typeof ok>>,
+    hasMore = true,
+  ) {
+    authFetch.mockImplementation(async (url: string) => {
+      if (url === "/api/members/me")
+        return ok({ name: "Test User", avatarUrl: null, status: "" });
+      if (url === "/api/members/penalty-targets") return ok([]);
+      if (url === "/api/add/recent") return ok(page([activity], 3, hasMore));
+      if (url === "/api/add/recent?skip=3") return load();
+      throw new Error(url);
+    });
+  }
+  it("loads the next activity page using nextSkip", async () => {
+    const user = userEvent.setup();
+    paginated(async () => ok(page()));
+    render(<AddPenalty />);
+    await screen.findByRole("article");
+    await user.click(screen.getByRole("button", { name: "Visa fler" }));
+    expect(authFetch).toHaveBeenCalledWith("/api/add/recent?skip=3");
+  });
+  it("appends loaded activities instead of replacing existing activities", async () => {
+    const user = userEvent.setup();
+    paginated(async () =>
+      ok(page([{ ...activity, id: "new", fromName: "New" }])),
+    );
+    render(<AddPenalty />);
+    await screen.findByText("Anna");
+    await user.click(screen.getByRole("button", { name: "Visa fler" }));
+    expect(await screen.findByText("New")).toBeInTheDocument();
+    expect(screen.getByText("Anna")).toBeInTheDocument();
+  });
+  it("disables the load more button and shows loading text while loading", async () => {
+    const user = userEvent.setup();
+    let resolve!: (value: ReturnType<typeof ok>) => void;
+    paginated(
+      () =>
+        new Promise((r) => {
+          resolve = r;
         }),
+    );
+    render(<AddPenalty />);
+    await screen.findByRole("article");
+    await user.click(screen.getByRole("button", { name: "Visa fler" }));
+    expect(screen.getByRole("button", { name: "Laddar..." })).toBeDisabled();
+    resolve(ok(page([], 3, true)));
+    expect(
+      await screen.findByRole("button", { name: "Visa fler" }),
+    ).toBeEnabled();
+  });
+  it("does not start another load more request while one is already running", async () => {
+    const user = userEvent.setup();
+    paginated(() => new Promise(() => undefined));
+    render(<AddPenalty />);
+    await screen.findByRole("article");
+    await user.click(screen.getByRole("button", { name: "Visa fler" }));
+    await user.click(screen.getByRole("button", { name: "Laddar..." }));
+    expect(
+      authFetch.mock.calls.filter(([url]) => url === "/api/add/recent?skip=3"),
+    ).toHaveLength(1);
+  });
+  it("does not fetch more activities when hasMore is false", async () => {
+    const user = userEvent.setup();
+    const alert = vi.spyOn(window, "alert").mockImplementation(() => undefined);
+    paginated(async () => ok(page()), false);
+    render(<AddPenalty />);
+    await screen.findByRole("article");
+    await user.click(screen.getByRole("button", { name: "Visa fler" }));
+    expect(alert).toHaveBeenCalledWith("Vi har inga fler aktiviteter");
+    expect(authFetch).not.toHaveBeenCalledWith("/api/add/recent?skip=3");
+  });
+  it("keeps existing activities and shows an error when loading more fails", async () => {
+    const user = userEvent.setup();
+    paginated(async () => ok(null, false));
+    render(<AddPenalty />);
+    await screen.findByRole("article");
+    await user.click(screen.getByRole("button", { name: "Visa fler" }));
+    expect(
+      await screen.findByText("Kunde inte hämta senaste aktivitet"),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("article")).toBeInTheDocument();
+  });
+});
+
+describe("Authorization and moderation", () => {
+  function moderation(
+    result: unknown = {
+      id: "activity-1",
+      status: "APPROVED",
+      amount: 3,
+      acceptedByName: "Bongmeister",
+    },
+    successful = true,
+  ) {
+    authFetch.mockImplementation(async (url: string) => {
+      if (url === "/api/members/me")
+        return ok({ name: "Test User", avatarUrl: null, status: "" });
+      if (url === "/api/members/penalty-targets") return ok([]);
+      if (url === "/api/add/recent") return ok(page([activity]));
+      if (url === "/api/bongmeister/activity-1") return ok(result, successful);
+      throw new Error(url);
+    });
+  }
+  it("does not show moderation controls to a normal user", async () => {
+    arrange([member], [activity]);
+    render(<AddPenalty />);
+    await screen.findByText("Väntar");
+    for (const name of ["Godkänn", "Ändra", "Neka"])
+      expect(screen.queryByRole("button", { name })).not.toBeInTheDocument();
+  });
+  it.each(["admin", "bongmeister"])(
+    "shows moderation controls to users with the %s role",
+    async (role) => {
+      keycloak.tokenParsed.realm_access.roles = [role];
+      arrange([member], [activity]);
+      render(<AddPenalty />);
+      for (const name of ["Godkänn", "Ändra", "Neka"])
+        expect(await screen.findByRole("button", { name })).toBeInTheDocument();
+    },
+  );
+  it("does not show moderation controls for a non-pending activity", async () => {
+    keycloak.tokenParsed.realm_access.roles = ["ADMIN"];
+    arrange([member], [{ ...activity, status: "APPROVED" }]);
+    render(<AddPenalty />);
+    await screen.findByText("OK");
+    expect(
+      screen.queryByRole("button", { name: "Godkänn" }),
+    ).not.toBeInTheDocument();
+  });
+  it.each([
+    ["Godkänn", "APPROVE"],
+    ["Neka", "REJECT"],
+  ] as const)("sends a %s request", async (button, action) => {
+    const user = userEvent.setup();
+    keycloak.tokenParsed.realm_access.roles = ["ADMIN"];
+    moderation();
+    render(<AddPenalty />);
+    await user.click(await screen.findByRole("button", { name: button }));
+    expect(authFetch).toHaveBeenCalledWith("/api/bongmeister/activity-1", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action, amount: undefined }),
+    });
+  });
+  it("updates an activity after successful moderation", async () => {
+    const user = userEvent.setup();
+    keycloak.tokenParsed.realm_access.roles = ["ADMIN"];
+    moderation();
+    render(<AddPenalty />);
+    await user.click(await screen.findByRole("button", { name: "Godkänn" }));
+    expect(await screen.findByText(/3 bongar$/)).toBeInTheDocument();
+    expect(screen.getByText("OK av Bongmeister")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Godkänn" }),
+    ).not.toBeInTheDocument();
+  });
+  it.each([
+    [{ message: "Custom backend error" }, "Custom backend error"],
+    [{}, "Kunde inte ändra bongarna"],
+  ])("shows the moderation error", async (body, message) => {
+    const user = userEvent.setup();
+    const alert = vi.spyOn(window, "alert").mockImplementation(() => undefined);
+    keycloak.tokenParsed.realm_access.roles = ["ADMIN"];
+    moderation(body, false);
+    render(<AddPenalty />);
+    await user.click(await screen.findByRole("button", { name: "Godkänn" }));
+    expect(alert).toHaveBeenCalledWith(message);
+  });
+});
+
+describe("Edit and approve", () => {
+  beforeEach(() => {
+    keycloak.tokenParsed.realm_access.roles = ["BONGMEISTER"];
+  });
+  it("opens the edit prompt with the current activity amount", async () => {
+    const user = userEvent.setup();
+    const prompt = vi.spyOn(window, "prompt").mockReturnValue(null);
+    arrange([member], [{ ...activity, amount: 3 }]);
+    render(<AddPenalty />);
+    await user.click(await screen.findByRole("button", { name: "Ändra" }));
+    expect(prompt).toHaveBeenCalledWith("Antal", "3");
+  });
+  it("does not moderate the activity when the edit prompt is cancelled", async () => {
+    const user = userEvent.setup();
+    vi.spyOn(window, "prompt").mockReturnValue(null);
+    arrange([member], [activity]);
+    render(<AddPenalty />);
+    await user.click(await screen.findByRole("button", { name: "Ändra" }));
+    expect(
+      authFetch.mock.calls.some(([url]) =>
+        String(url).startsWith("/api/bongmeister/"),
       ),
-      activities: [],
-    });
-
-    render(<AddShot />);
-
-    await user.type(await screen.findByPlaceholderText("Sök efter namn..."), "match");
-
-    const suggestions = screen.getAllByRole("button", {
-      name: /Match God/i,
-    });
-
-    expect(suggestions).toHaveLength(8);
+    ).toBe(false);
   });
-
-  it("disables submit button until a member is selected and amount is valid", async () => {
+  it.each(["0", "-1", "1.5"])(
+    "rejects invalid edited amount %s",
+    async (amount) => {
+      const user = userEvent.setup();
+      vi.spyOn(window, "prompt").mockReturnValue(amount);
+      const alert = vi
+        .spyOn(window, "alert")
+        .mockImplementation(() => undefined);
+      arrange([member], [activity]);
+      render(<AddPenalty />);
+      await user.click(await screen.findByRole("button", { name: "Ändra" }));
+      expect(alert).toHaveBeenCalledWith(
+        "Antal måste vara ett heltal på minst 1.",
+      );
+      expect(
+        authFetch.mock.calls.some(([url]) =>
+          String(url).startsWith("/api/bongmeister/"),
+        ),
+      ).toBe(false);
+    },
+  );
+  it("approves an activity with the edited amount", async () => {
     const user = userEvent.setup();
-
-    mockInitialRequests({
-      members: [
-        createMember(1, {
-          name: "Oskar",
-          godname: "Odin",
-        }),
-      ],
-      activities: [],
-    });
-
-    render(<AddShot />);
-
-    const submitButton = screen.getByRole("button", { name: "Ge bong" });
-
-    expect(submitButton).toBeDisabled();
-
-    await user.type(await screen.findByPlaceholderText("Sök efter namn..."), "odin");
-    await user.click(screen.getByRole("button", { name: "Odin, Oskar" }));
-
-    expect(submitButton).toBeEnabled();
-
-    const amountInput = screen.getByRole("spinbutton");
-
-    await user.clear(amountInput);
-    await user.type(amountInput, "0");
-
-    expect(submitButton).toBeDisabled();
-  });
-
-  it("submits a new shot and refreshes recent activity", async () => {
-    const user = userEvent.setup();
-
-    const members = [
-      createMember(1, {
-        id: "member-1",
-        name: "Oskar",
-        godname: "Odin",
-      }),
-    ];
-
-    let recentCallCount = 0;
-
-    mockAuthFetch.mockImplementation(async (url: string, options?: RequestInit) => {
-      if (url === "/api/members/shot-targets") {
-        return jsonResponse(members);
-      }
-
-      if (url === "/api/add/recent") {
-        recentCallCount += 1;
-
-        if (recentCallCount === 1) {
-          return jsonResponse([]);
-        }
-
-        return jsonResponse([
-          createActivity(1, {
-            fromName: "Rasmus",
-            toName: "Odin",
-            amount: 3,
-            reason: "Test reason",
-            status: "PENDING",
-            acceptedByName: null,
-          }),
-        ]);
-      }
-
-      if (url === "/api/add") {
-        expect(options?.method).toBe("POST");
-        expect(options?.headers).toEqual({
-          "Content-Type": "application/json",
-        });
-        expect(JSON.parse(String(options?.body))).toEqual({
-          Id: "member-1",
-          amount: 3,
-          reason: "Test reason",
-        });
-
-        return jsonResponse({
-          id: "created-shot",
-        });
-      }
-
-      throw new Error(`Unexpected authFetch call: ${url}`);
-    });
-
-    render(<AddShot />);
-
-    await user.type(await screen.findByPlaceholderText("Sök efter namn..."), "odin");
-    await user.click(screen.getByRole("button", { name: "Odin, Oskar" }));
-
-    const amountInput = screen.getByRole("spinbutton");
-    await user.clear(amountInput);
-    await user.type(amountInput, "3");
-
-    await user.type(screen.getByPlaceholderText("Anledning..."), "Test reason");
-
-    await user.click(screen.getByRole("button", { name: "Ge bong" }));
-
-    expect(await screen.findByRole("status")).toHaveTextContent("Shot added.");
-
-    expect(
-      await screen.findByText(exactParagraphText("Rasmus gav Odin 3 bongar")),
-    ).toBeInTheDocument();
-
-    expect(mockAuthFetch).toHaveBeenCalledWith(
-      "/api/add",
+    vi.spyOn(window, "prompt").mockReturnValue("4");
+    arrange([member], [activity]);
+    const original = authFetch.getMockImplementation();
+    authFetch.mockImplementation(async (url: string, init?: RequestInit) =>
+      url === "/api/bongmeister/activity-1"
+        ? ok({
+            id: "activity-1",
+            status: "APPROVED",
+            amount: 4,
+            acceptedByName: "Boss",
+          })
+        : original!(url, init),
+    );
+    render(<AddPenalty />);
+    await user.click(await screen.findByRole("button", { name: "Ändra" }));
+    expect(authFetch).toHaveBeenCalledWith(
+      "/api/bongmeister/activity-1",
       expect.objectContaining({
-        method: "POST",
+        body: JSON.stringify({ action: "APPROVE", amount: 4 }),
       }),
     );
   });
+});
 
-  it("shows submit error when add shot request fails", async () => {
+describe("Add penalty form", () => {
+  it("starts with amount 1 and an empty reason", () => {
+    arrange();
+    render(<AddPenalty />);
+    expect(screen.getByRole("spinbutton")).toHaveValue(1);
+    expect(screen.getByPlaceholderText("Anledning...")).toHaveValue("");
+  });
+  it("disables the add button when no member is selected", () => {
+    arrange();
+    render(<AddPenalty />);
+    expect(screen.getByRole("button", { name: "Ge bong" })).toBeDisabled();
+  });
+  it("disables the add button when amount is less than one", async () => {
     const user = userEvent.setup();
-
-    mockAuthFetch.mockImplementation(async (url: string) => {
-      if (url === "/api/members/shot-targets") {
-        return jsonResponse([
-          createMember(1, {
-            id: "member-1",
-            name: "Oskar",
-            godname: "Odin",
-          }),
-        ]);
-      }
-
-      if (url === "/api/add/recent") {
-        return jsonResponse([]);
-      }
-
-      if (url === "/api/add") {
-        return jsonResponse(
-          {
-            message: "Du får inte ge bong till den medlemmen.",
-          },
-          {
-            ok: false,
-            status: 400,
-          },
-        );
-      }
-
-      throw new Error(`Unexpected authFetch call: ${url}`);
-    });
-
-    render(<AddShot />);
-
-    await user.type(await screen.findByPlaceholderText("Sök efter namn..."), "odin");
-    await user.click(screen.getByRole("button", { name: "Odin, Oskar" }));
+    arrange();
+    render(<AddPenalty />);
+    await select(user);
+    await user.clear(screen.getByRole("spinbutton"));
+    await user.type(screen.getByRole("spinbutton"), "0");
+    expect(screen.getByRole("button", { name: "Ge bong" })).toBeDisabled();
+  });
+  it.each([
+    [3, "Kom sent"],
+    [1, ""],
+  ])("submits amount %s and reason '%s'", async (amount, reason) => {
+    const user = userEvent.setup();
+    arrange();
+    render(<AddPenalty />);
+    await select(user);
+    if (amount !== 1) {
+      await user.clear(screen.getByRole("spinbutton"));
+      await user.type(screen.getByRole("spinbutton"), String(amount));
+    }
+    if (reason)
+      await user.type(screen.getByPlaceholderText("Anledning..."), reason);
     await user.click(screen.getByRole("button", { name: "Ge bong" }));
-
-    expect(
-      await screen.findByText("Du får inte ge bong till den medlemmen."),
-    ).toBeInTheDocument();
-  });
-
-  it("renders status text for pending, approved, and denied activities", async () => {
-    mockInitialRequests({
-      activities: [
-        createActivity(1, {
-          status: "PENDING",
-          acceptedByName: null,
-        }),
-        createActivity(2, {
-          status: "APPROVED",
-          acceptedByName: "Rasmus",
-        }),
-        createActivity(3, {
-          status: "DENIED",
-          acceptedByName: "Oskar",
-        }),
-      ],
+    expect(authFetch).toHaveBeenCalledWith("/api/add", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ Id: "member-1", amount, reason }),
     });
-
-    render(<AddShot />);
-
-    expect(await screen.findByText("Väntar")).toBeInTheDocument();
-    expect(screen.getByText("OK av Rasmus")).toBeInTheDocument();
-    expect(screen.getByText("Nekad av Oskar")).toBeInTheDocument();
   });
-
-  it("loads more recent activity with skip equal to current activity count", async () => {
+  it("resets the form and shows success after adding a penalty", async () => {
     const user = userEvent.setup();
-
-    mockAuthFetch.mockImplementation(async (url: string) => {
-      if (url === "/api/members/shot-targets") {
-        return jsonResponse([]);
-      }
-
-      if (url === "/api/add/recent") {
-        return jsonResponse([
-          createActivity(1, { id: "activity-1" }),
-          createActivity(2, { id: "activity-2" }),
-        ]);
-      }
-
-      if (url === "/api/add/recent?skip=2") {
-        return jsonResponse([createActivity(3, { id: "activity-3" })]);
-      }
-
-      throw new Error(`Unexpected authFetch call: ${url}`);
-    });
-
-    const { container } = render(<AddShot />);
-
-    await waitFor(() => {
-      expect(container.querySelectorAll("article")).toHaveLength(2);
-    });
-
-    await user.click(screen.getByRole("button", { name: "Visa fler" }));
-
-    await waitFor(() => {
-      expect(container.querySelectorAll("article")).toHaveLength(3);
-    });
-
-    expect(mockAuthFetch).toHaveBeenCalledWith("/api/add/recent?skip=2");
+    arrange();
+    render(<AddPenalty />);
+    await select(user);
+    await user.type(screen.getByPlaceholderText("Anledning..."), "Reason");
+    await user.click(screen.getByRole("button", { name: "Ge bong" }));
+    expect(await screen.findByText("Har lagt till en")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Sök efter namn...")).toHaveValue("");
+    expect(screen.getByRole("spinbutton")).toHaveValue(1);
+    expect(screen.getByPlaceholderText("Anledning...")).toHaveValue("");
   });
-
-  it("shows alert when there are no more activities to load", async () => {
+  it("adds the newly created penalty to the top of recent activity", async () => {
     const user = userEvent.setup();
-    const alertSpy = vi.spyOn(window, "alert").mockImplementation(() => undefined);
-
-    mockAuthFetch.mockImplementation(async (url: string) => {
-      if (url === "/api/members/shot-targets") {
-        return jsonResponse([]);
-      }
-
-      if (url === "/api/add/recent") {
-        return jsonResponse([createActivity(1)]);
-      }
-
-      if (url === "/api/add/recent?skip=1") {
-        return jsonResponse([]);
-      }
-
-      throw new Error(`Unexpected authFetch call: ${url}`);
-    });
-
-    render(<AddShot />);
-
-    await screen.findByText("From 1");
-
-    await user.click(screen.getByRole("button", { name: "Visa fler" }));
-
-    expect(alertSpy).toHaveBeenCalledWith("Det finns inga fler aktiviteter.");
-
-    alertSpy.mockRestore();
+    const old = { ...activity, id: "old", fromName: "Old sender" };
+    const created = { ...activity, id: "new", fromName: "New sender" };
+    arrange([member], [old], created);
+    render(<AddPenalty />);
+    await screen.findByText("Old sender");
+    await select(user);
+    await user.click(screen.getByRole("button", { name: "Ge bong" }));
+    const cards = await screen.findAllByRole("article");
+    expect(within(cards[0]).getByText("New sender")).toBeInTheDocument();
+    expect(within(cards[1]).getByText("Old sender")).toBeInTheDocument();
   });
-
-  it("shows load more error when loading more activities fails", async () => {
+  it("does not treat a non-ok add response as a successful submission", async () => {
     const user = userEvent.setup();
-
-    mockAuthFetch.mockImplementation(async (url: string) => {
-      if (url === "/api/members/shot-targets") {
-        return jsonResponse([]);
-      }
-
-      if (url === "/api/add/recent") {
-        return jsonResponse([createActivity(1)]);
-      }
-
-      if (url === "/api/add/recent?skip=1") {
-        return jsonResponse(null, {
-          ok: false,
-          status: 500,
-        });
-      }
-
-      throw new Error(`Unexpected authFetch call: ${url}`);
-    });
-
-    render(<AddShot />);
-
-    await screen.findByText("From 1");
-
-    await user.click(screen.getByRole("button", { name: "Visa fler" }));
-
-    expect(
-      await screen.findByText("Failed to fetch recent activity"),
-    ).toBeInTheDocument();
-  });
-
-  it("shows moderation buttons for BONGMEISTER on pending activity", async () => {
-    mockUserRoles(["BONGMEISTER"]);
-
-    mockInitialRequests({
-      activities: [
-        createActivity(1, {
-          status: "PENDING",
-          acceptedByName: null,
-        }),
-      ],
-    });
-
-    render(<AddShot />);
-
-    expect(await screen.findByText("Väntar")).toBeInTheDocument();
-
-    expect(screen.getByRole("button", { name: "Godkänn" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Ändra" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Neka" })).toBeInTheDocument();
-  });
-
-  it("hides moderation buttons for regular user", async () => {
-    mockUserRoles([]);
-
-    mockInitialRequests({
-      activities: [
-        createActivity(1, {
-          status: "PENDING",
-          acceptedByName: null,
-        }),
-      ],
-    });
-
-    render(<AddShot />);
-
-    expect(await screen.findByText("Väntar")).toBeInTheDocument();
-
-    expect(screen.queryByRole("button", { name: "Godkänn" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Ändra" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Neka" })).not.toBeInTheDocument();
-  });
-
-  it("approves a pending activity as bongmeister", async () => {
-    const user = userEvent.setup();
-
-    mockUserRoles(["BONGMEISTER"]);
-
-    mockAuthFetch.mockImplementation(async (url: string, options?: RequestInit) => {
-      if (url === "/api/members/shot-targets") {
-        return jsonResponse([]);
-      }
-
-      if (url === "/api/add/recent") {
-        return jsonResponse([
-          createActivity(1, {
-            id: "activity-1",
-            amount: 2,
-            reason: "Old reason",
-            status: "PENDING",
-            acceptedByName: null,
-          }),
-        ]);
-      }
-
-      if (url === "/api/bongmeister/activity-1") {
-        expect(options?.method).toBe("PATCH");
-        expect(options?.headers).toEqual({
-          "Content-Type": "application/json",
-        });
-        expect(JSON.parse(String(options?.body))).toEqual({
-          action: "APPROVE",
-        });
-
-        return jsonResponse(
-          createActivity(1, {
-            id: "activity-1",
-            amount: 2,
-            reason: "Old reason",
-            status: "APPROVED",
-            acceptedByName: "Bongmeister",
-          }),
-        );
-      }
-
-      throw new Error(`Unexpected authFetch call: ${url}`);
-    });
-
-    render(<AddShot />);
-
-    await screen.findByText("Väntar");
-
-    await user.click(screen.getByRole("button", { name: "Godkänn" }));
-
-    expect(await screen.findByText("OK")).toBeInTheDocument();
-
-    await waitFor(() => {
-      expect(screen.queryByRole("button", { name: "Godkänn" })).not.toBeInTheDocument();
-    });
-  });
-
-  it("edits amount and approves a pending activity as bongmeister", async () => {
-    const user = userEvent.setup();
-    const promptSpy = vi.spyOn(window, "prompt").mockReturnValue("5");
-
-    mockUserRoles(["BONGMEISTER"]);
-
-    mockAuthFetch.mockImplementation(async (url: string, options?: RequestInit) => {
-      if (url === "/api/members/shot-targets") {
-        return jsonResponse([]);
-      }
-
-      if (url === "/api/add/recent") {
-        return jsonResponse([
-          createActivity(1, {
-            id: "activity-1",
-            amount: 2,
-            reason: "Old reason",
-            status: "PENDING",
-            acceptedByName: null,
-          }),
-        ]);
-      }
-
-      if (url === "/api/bongmeister/activity-1") {
-        expect(options?.method).toBe("PATCH");
-        expect(JSON.parse(String(options?.body))).toEqual({
-          action: "APPROVE",
-          amount: 5,
-        });
-
-        return jsonResponse(
-          createActivity(1, {
-            id: "activity-1",
-            amount: 5,
-            reason: "Old reason",
-            status: "APPROVED",
-            acceptedByName: "Bongmeister",
-          }),
-        );
-      }
-
-      throw new Error(`Unexpected authFetch call: ${url}`);
-    });
-
-    render(<AddShot />);
-
-    await screen.findByText("Väntar");
-
-    await user.click(screen.getByRole("button", { name: "Ändra" }));
-
-    expect(promptSpy).toHaveBeenCalledWith("Antal", "2");
-
-    expect(
-      await screen.findByText(exactParagraphText("From 1 gav To 1 5 bongar")),
-    ).toBeInTheDocument();
-
-    promptSpy.mockRestore();
-  });
-
-  it("does not approve edited activity when prompt is cancelled", async () => {
-    const user = userEvent.setup();
-    const promptSpy = vi.spyOn(window, "prompt").mockReturnValue(null);
-
-    mockUserRoles(["BONGMEISTER"]);
-
-    mockInitialRequests({
-      activities: [
-        createActivity(1, {
-          id: "activity-1",
-          amount: 2,
-          status: "PENDING",
-          acceptedByName: null,
-        }),
-      ],
-    });
-
-    render(<AddShot />);
-
-    await screen.findByText("Väntar");
-
-    await user.click(screen.getByRole("button", { name: "Ändra" }));
-
-    expect(promptSpy).toHaveBeenCalledWith("Antal", "2");
-
-    expect(mockAuthFetch).not.toHaveBeenCalledWith(
-      "/api/bongmeister/activity-1",
-      expect.anything(),
+    arrange();
+    const original = authFetch.getMockImplementation();
+    authFetch.mockImplementation(async (url: string, init?: RequestInit) =>
+      url === "/api/add"
+        ? ok({ ...activity, id: "failed" }, false)
+        : original!(url, init),
     );
-
-    promptSpy.mockRestore();
-  });
-
-  it("shows alert when edited amount is invalid", async () => {
-    const user = userEvent.setup();
-    const promptSpy = vi.spyOn(window, "prompt").mockReturnValue("0");
-    const alertSpy = vi.spyOn(window, "alert").mockImplementation(() => undefined);
-
-    mockUserRoles(["BONGMEISTER"]);
-
-    mockInitialRequests({
-      activities: [
-        createActivity(1, {
-          id: "activity-1",
-          amount: 2,
-          status: "PENDING",
-          acceptedByName: null,
-        }),
-      ],
-    });
-
-    render(<AddShot />);
-
-    await screen.findByText("Väntar");
-
-    await user.click(screen.getByRole("button", { name: "Ändra" }));
-
-    expect(alertSpy).toHaveBeenCalledWith("Antal måste vara ett heltal på minst 1.");
-
-    expect(mockAuthFetch).not.toHaveBeenCalledWith(
-      "/api/bongmeister/activity-1",
-      expect.anything(),
+    render(<AddPenalty />);
+    const input = await select(user);
+    await user.click(screen.getByRole("button", { name: "Ge bong" }));
+    await waitFor(() =>
+      expect(authFetch).toHaveBeenCalledWith("/api/add", expect.anything()),
     );
-
-    promptSpy.mockRestore();
-    alertSpy.mockRestore();
+    expect(screen.queryByText("Har lagt till en")).not.toBeInTheDocument();
+    expect(input).toHaveValue("Odin (Rasmus Kebert)");
+    expect(screen.queryByText("failed")).not.toBeInTheDocument();
   });
-
-  it("rejects a pending activity as bongmeister", async () => {
+  it("shows an error when the add request throws", async () => {
     const user = userEvent.setup();
-
-    mockUserRoles(["BONGMEISTER"]);
-
-    mockAuthFetch.mockImplementation(async (url: string, options?: RequestInit) => {
-      if (url === "/api/members/shot-targets") {
-        return jsonResponse([]);
-      }
-
-      if (url === "/api/add/recent") {
-        return jsonResponse([
-          createActivity(1, {
-            id: "activity-1",
-            status: "PENDING",
-            acceptedByName: null,
-          }),
-        ]);
-      }
-
-      if (url === "/api/bongmeister/activity-1") {
-        expect(options?.method).toBe("PATCH");
-        expect(JSON.parse(String(options?.body))).toEqual({
-          action: "REJECT",
-        });
-
-        return jsonResponse(
-          createActivity(1, {
-            id: "activity-1",
-            status: "DENIED",
-            acceptedByName: "Bongmeister",
-          }),
-        );
-      }
-
-      throw new Error(`Unexpected authFetch call: ${url}`);
+    arrange();
+    const original = authFetch.getMockImplementation();
+    authFetch.mockImplementation(async (url: string, init?: RequestInit) => {
+      if (url === "/api/add") throw new Error();
+      return original!(url, init);
     });
-
-    render(<AddShot />);
-
-    await screen.findByText("Väntar");
-
-    await user.click(screen.getByRole("button", { name: "Neka" }));
-
-    expect(await screen.findByText("Nekad")).toBeInTheDocument();
+    render(<AddPenalty />);
+    await select(user);
+    await user.click(screen.getByRole("button", { name: "Ge bong" }));
+    expect(
+      await screen.findByText("Kunde inte addera straffet"),
+    ).toBeInTheDocument();
   });
+});
 
-  it("shows alert when moderation request fails", async () => {
+describe("Navigation", () => {
+  it("navigates to redeem when Bli av med bong is clicked", async () => {
     const user = userEvent.setup();
-    const alertSpy = vi.spyOn(window, "alert").mockImplementation(() => undefined);
-
-    mockUserRoles(["BONGMEISTER"]);
-
-    mockAuthFetch.mockImplementation(async (url: string) => {
-      if (url === "/api/members/shot-targets") {
-        return jsonResponse([]);
-      }
-
-      if (url === "/api/add/recent") {
-        return jsonResponse([
-          createActivity(1, {
-            id: "activity-1",
-            status: "PENDING",
-            acceptedByName: null,
-          }),
-        ]);
-      }
-
-      if (url === "/api/bongmeister/activity-1") {
-        return jsonResponse(
-          {
-            message: "Du får inte hantera den här bongen.",
-          },
-          {
-            ok: false,
-            status: 403,
-          },
-        );
-      }
-
-      throw new Error(`Unexpected authFetch call: ${url}`);
-    });
-
-    render(<AddShot />);
-
-    await screen.findByText("Väntar");
-
-    await user.click(screen.getByRole("button", { name: "Godkänn" }));
-
-    expect(alertSpy).toHaveBeenCalledWith("Du får inte hantera den här bongen.");
-
-    alertSpy.mockRestore();
+    arrange();
+    render(<AddPenalty />);
+    const buttons = screen.getAllByRole("button", { name: "Bli av med bong" });
+    await user.click(buttons.at(-1)!);
+    expect(navigate).toHaveBeenCalledWith("/redeem");
   });
 });

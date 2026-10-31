@@ -512,7 +512,7 @@ describe("Redeem", () => {
         });
 
         expect(JSON.parse(String(options?.body))).toEqual({
-          bongAmount: 3,
+          penaltyAmount: 3,
           filename: "proof.mp4",
           contentType: "video/mp4",
           sizeBytes: 1234,

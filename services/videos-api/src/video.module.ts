@@ -9,6 +9,10 @@ import { MinioVideoController } from './minio-video.controller';
 import { MinioVideoService } from './minio-video.service';
 import { PrismaService } from './prisma.service';
 import { VideoGrpcController } from './video-grpc.controller';
+import { PrometheusController } from './prometheus.controller';
+import { PrometheusService } from './prometheus.service';
+import { GrpcMetricsService } from './grpc-metrics.service';
+import { GrpcMetricsInterceptor } from './grpc-metrics.interceptor';
 
 @Module({
   imports: [
@@ -22,7 +26,7 @@ import { VideoGrpcController } from './video-grpc.controller';
           transport: Transport.GRPC,
           options: {
             package: 'member',
-            protoPath: join(process.cwd(), '../../proto/member/member.proto'),
+            protoPath: join(process.cwd(), '../../proto/member.proto'),
             url: config.get<string>('MEMBER_GRPC_URL') ?? 'localhost:50051',
           },
         }),
@@ -30,7 +34,11 @@ import { VideoGrpcController } from './video-grpc.controller';
       },
     ]),
   ],
-  controllers: [MinioVideoController, VideoGrpcController],
+  controllers: [
+    MinioVideoController,
+    VideoGrpcController,
+    PrometheusController,
+  ],
   providers: [
     {
       provide: MINIO_TOKEN,
@@ -46,6 +54,9 @@ import { VideoGrpcController } from './video-grpc.controller';
     },
     MinioVideoService,
     PrismaService,
+    PrometheusService,
+    GrpcMetricsInterceptor,
+    GrpcMetricsService,
   ],
 })
 export class VideosModule {}

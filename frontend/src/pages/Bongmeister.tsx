@@ -22,7 +22,7 @@ function Bongmeister() {
 
     async function fetchMembers() {
       try {
-        const response = await authFetch("/api/bongmeister/shot-targets");
+        const response = await authFetch("/api/bongmeister/penalty-targets");
 
         if (!response.ok) {
           throw new Error("Kunde inte hämta medlemmar");

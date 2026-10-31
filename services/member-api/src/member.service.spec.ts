@@ -6,7 +6,7 @@ import { mockDeep, type DeepMockProxy } from 'jest-mock-extended';
 import { MemberService } from './member.service';
 import { PrismaService } from './prisma.service';
 import { MemberStatus } from './generated/prisma/enums';
-import { ConflictException } from '@nestjs/common';
+import { ConflictException, NotFoundException } from '@nestjs/common';
 
 jest.mock('./prisma.service', () => ({
   PrismaService: class PrismaService {},
@@ -107,14 +107,14 @@ describe('MemberService', () => {
     });
   });
 
-  describe('findShotTargets', () => {
-    it('filters shot targets to GUD members ordered by godname', async () => {
+  describe('findPenaltyTargets', () => {
+    it('filters penalty targets to GUD and VIKING members ordered by godname', async () => {
       prisma.member.findMany.mockResolvedValueOnce([]);
 
-      await service.findShotTargets();
+      await service.findPenaltyTargets();
 
       expect(prisma.member.findMany).toHaveBeenCalledWith({
-        where: { status: 'GUD' },
+        where: { status: { in: ['GUD', 'VIKING'] } },
         orderBy: { godname: 'asc' },
         select: { id: true, name: true, godname: true },
       });
@@ -163,28 +163,54 @@ describe('MemberService', () => {
     });
   });
 
-  describe('resolveShotParticipants', () => {
-    it('returns the sender and GUD target record IDs', async () => {
-      prisma.member.findUnique
-        .mockResolvedValueOnce({ id: 'sender-id' })
-        .mockResolvedValueOnce({ id: 'target-id', status: 'GUD' });
+  describe('findCurrentProfile', () => {
+    it('returns the member linked to the Keycloak user', async () => {
+      const member = {
+        id: 'member-id',
+        name: 'Stina Andersson',
+        godname: 'Freja',
+        avatarUrl: null,
+        status: MemberStatus.GUD,
+      };
+      prisma.member.findUnique.mockResolvedValueOnce(member);
 
-      await expect(
-        service.resolveShotParticipants('target-id', user),
-      ).resolves.toEqual({
-        fromId: 'sender-id',
-        toId: 'target-id',
-      });
-
-      expect(prisma.member.findUnique).toHaveBeenNthCalledWith(1, {
-        where: { keycloakId: user.keycloakId },
-        select: { id: true },
-      });
-      expect(prisma.member.findUnique).toHaveBeenNthCalledWith(2, {
-        where: { id: 'target-id' },
-        select: { id: true, status: true },
-      });
+      await expect(service.findCurrentProfile(user)).resolves.toEqual(member);
     });
+
+    it('returns not found when the Keycloak user has no linked member', async () => {
+      prisma.member.findUnique.mockResolvedValueOnce(null);
+
+      await expect(service.findCurrentProfile(user)).rejects.toThrow(
+        new NotFoundException('Member account is not linked'),
+      );
+    });
+  });
+
+  describe('resolvePenaltyParticipants', () => {
+    it.each(['GUD', 'VIKING'])(
+      'returns the sender and %s target record IDs',
+      async (status) => {
+        prisma.member.findUnique
+          .mockResolvedValueOnce({ id: 'sender-id' })
+          .mockResolvedValueOnce({ id: 'target-id', status });
+
+        await expect(
+          service.resolvePenaltyParticipants('target-id', user),
+        ).resolves.toEqual({
+          fromId: 'sender-id',
+          toId: 'target-id',
+        });
+
+        expect(prisma.member.findUnique).toHaveBeenNthCalledWith(1, {
+          where: { keycloakId: user.keycloakId },
+          select: { id: true },
+        });
+        expect(prisma.member.findUnique).toHaveBeenNthCalledWith(2, {
+          where: { id: 'target-id' },
+          select: { id: true, status: true },
+        });
+      },
+    );
 
     it('rejects when the caller has no linked member record', async () => {
       prisma.member.findUnique
@@ -192,7 +218,7 @@ describe('MemberService', () => {
         .mockResolvedValueOnce({ id: 'target-id', status: 'GUD' });
 
       const error = await captureRpcException(
-        service.resolveShotParticipants('target-id', user),
+        service.resolvePenaltyParticipants('target-id', user),
       );
 
       expect(error.getError()).toEqual({
@@ -208,7 +234,7 @@ describe('MemberService', () => {
         .mockResolvedValueOnce(null);
 
       const error = await captureRpcException(
-        service.resolveShotParticipants('missing-target', user),
+        service.resolvePenaltyParticipants('missing-target', user),
       );
 
       expect(error.getError()).toEqual({
@@ -217,18 +243,18 @@ describe('MemberService', () => {
       });
     });
 
-    it('rejects when the target is not a GUD member', async () => {
+    it('rejects when the target is neither a GUD nor a VIKING member', async () => {
       prisma.member.findUnique
         .mockResolvedValueOnce({ id: 'sender-id' })
         .mockResolvedValueOnce({ id: 'target-id', status: 'AS' });
 
       const error = await captureRpcException(
-        service.resolveShotParticipants('target-id', user),
+        service.resolvePenaltyParticipants('target-id', user),
       );
 
       expect(error.getError()).toEqual({
         code: GrpcStatus.INVALID_ARGUMENT,
-        details: 'Only GUD members can receive shots',
+        details: 'Only GUD and VIKING members can receive penalties',
       });
     });
 
@@ -238,12 +264,12 @@ describe('MemberService', () => {
         .mockResolvedValueOnce({ id: 'same-member-id', status: 'GUD' });
 
       const error = await captureRpcException(
-        service.resolveShotParticipants('same-member-id', user),
+        service.resolvePenaltyParticipants('same-member-id', user),
       );
 
       expect(error.getError()).toEqual({
         code: GrpcStatus.INVALID_ARGUMENT,
-        details: 'You cannot give shots to yourself',
+        details: 'You cannot give penalties to yourself',
       });
     });
   });

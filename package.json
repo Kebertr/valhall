@@ -1,7 +1,7 @@
 {
   "name": "valhall",
   "private": true,
-  "version": "0.0.3",
+  "version": "0.0.4",
   "packageManager": "pnpm@11.17.0",
   "engines": {
     "node": ">=24"
@@ -15,12 +15,17 @@
     "build": "pnpm --recursive --if-present build",
     "build:auth": "pnpm --filter @valhall/auth build",
     "build:member": "pnpm --filter member-api build",
-    "build:bong": "pnpm --filter bong-api build",
+    "build:penalty": "pnpm --filter penalty-api build",
     "build:frontend": "pnpm --filter frontend build",
     "test": "pnpm --recursive --if-present test",
     "start:member": "pnpm --filter member-api start:dev",
-    "start:bong": "pnpm --filter bong-api start:dev",
+    "start:penalty": "pnpm --filter penalty-api start:dev",
     "start:frontend": "pnpm --filter frontend dev",
-    "start:videos": "pnpm --filter videos-api start:dev"
+    "start:videos": "pnpm --filter videos-api start:dev",
+    "proto:generate": "protoc --ts_proto_out=./packages/contracts/ --ts_proto_opt=nestJs=true,returnObservable=true,addGrpcMetadata=true -I ./proto ./proto/*.proto"
+  },
+  "devDependencies": {
+    "protobufjs": "^8.7.2",
+    "ts-proto": "^2.12.0"
   }
 }

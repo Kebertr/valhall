@@ -1,18 +1,18 @@
 services:
-  postgres-bong:
+  postgres-penalty:
     image: postgres:16
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB_BONG}
+      POSTGRES_DB: ${POSTGRES_DB_PENALTY}
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB_BONG}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB_PENALTY}"]
       interval: 3s
       retries: 10
     ports:
       - "5433:5432"
     volumes:
-      - bong-db-data:/var/lib/postgresql/data
+      - penalty-db-data:/var/lib/postgresql/data
     networks:
       - app-network
 
@@ -50,22 +50,22 @@ services:
     networks:
       - app-network
 
-  bong-api:
+  penalty-api:
     build:
       context: .
       dockerfile: Dockerfile
-      target: bong-runtime
+      target: penalty-runtime
     ports:
       - "3001:3001"
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres-bong:5432/${POSTGRES_DB_BONG}
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres-penalty:5432/${POSTGRES_DB_PENALTY}
       KEYCLOAK_URL: ${KEYCLOAK_URL}
       KEYCLOAK_REALM: ${KEYCLOAK_REALM}
       KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID}
       MEMBER_GRPC_URL: member-api:50051
       VIDEO_GRPC_URL: videos-api:50052
     depends_on:
-      postgres-bong:
+      postgres-penalty:
         condition: service_healthy
       member-api:
         condition: service_started
@@ -132,9 +132,9 @@ services:
         VITE_KEYCLOAK_REALM: ${KEYCLOAK_REALM}
         VITE_KEYCLOAK_CLIENT_ID: ${VITE_KEYCLOAK_CLIENT_ID}
     ports:
-      - "5173:5173"
+      - "5173:80"
     depends_on:
-      - bong-api
+      - penalty-api
       - member-api
       - videos-api
     networks:
@@ -142,7 +142,7 @@ services:
 
 
 volumes:
-  bong-db-data:
+  penalty-db-data:
   member-db-data:
   videos-db-data:
 

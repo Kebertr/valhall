@@ -17,11 +17,12 @@ import {
 import type { AuthenticatedUser } from '@valhall/auth';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { ConsumeMemberLinkDto } from './dto/consume-member-link.dto';
-import { ResolveShotParticipantsDto } from './dto/resolve-shot-participants.dto';
+import { ResolvePenaltyParticipantsDto } from './dto/resolve-penalty-participants.dto';
 import { ResolveMemberNamesDto } from './dto/resolve-member-names.dto';
 import { MemberLinkService } from './member-link.service';
 import { MemberService } from './member.service';
 import { CreateMemberDto } from './dto/create-member.dto';
+import { RegisteredMemberGuard } from './registered-member.guard';
 
 @Controller('members')
 @ApiTags('Members')
@@ -40,15 +41,15 @@ export class MemberController {
   }
 
   @Get('gudar')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RegisteredMemberGuard)
   findAll() {
     return this.memberService.findAll();
   }
 
-  @Get('shot-targets')
+  @Get('penalty-targets')
   @UseGuards(JwtAuthGuard)
-  findShotTargets() {
-    return this.memberService.findShotTargets();
+  findPenaltyTargets() {
+    return this.memberService.findPenaltyTargets();
   }
 
   @Get('me')
@@ -86,13 +87,13 @@ export class MemberController {
     return this.memberLinkService.consumeLink(body.token, user);
   }
 
-  @Post('shot-participants')
+  @Post('penalty-participants')
   @UseGuards(JwtAuthGuard)
-  resolveShotParticipants(
-    @Body() body: ResolveShotParticipantsDto,
+  resolvePenaltyParticipants(
+    @Body() body: ResolvePenaltyParticipantsDto,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.memberService.resolveShotParticipants(
+    return this.memberService.resolvePenaltyParticipants(
       body.targetMemberRecordId,
       user,
     );
